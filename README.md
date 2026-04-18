@@ -1,4 +1,4 @@
-# 🌍 GeoLingo
+# LangEnjoyer
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-teal)
@@ -6,60 +6,32 @@
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 ![Railway](https://img.shields.io/badge/Deployed%20on-Railway-purple)
 
-**GeoLingo** is an interactive world map for exploring how languages are distributed across countries.
+**LangEnjoyer** is a platform of language games and tools for people who love exploring how languages work across the world.
 
-> **Explore languages across the globe**
-
-🔗 **Live demo:** https://geolingo.world  
+🔗 **Live:** https://geolingo.world
 
 ---
 
-## ✨ Features
+## Games
 
-- 🗺️ Interactive world map (Natural Earth 50m)
-- 🔍 Language search with autocomplete
-- 🏷️ Multi-language selection using removable chips
-- 🌐 Country highlighting by selected languages
-- 📊 Country info panel:
-  - Country name + flag
-  - Multiple official languages
-  - Speakers per language
-  - Total population
-- 🎨 Clean visual style:
-  - Invisible borders by default
-  - Borders appear only on hover or selection
-- 🚀 Production-ready deployment on Railway with HTTPS
+### GeoLingo
+Pick any language and instantly see every country where it's officially spoken — with population and speaker statistics on an interactive world map.
+
+### LingoGrid
+A daily language grid puzzle. Find a language that fits both a row and column category — scored by rarity. New puzzle every day, with a 50-game archive.
 
 ---
 
-## 🧠 How It Works
+## Tech Stack
 
-1. **Backend (FastAPI)**  
-   - Serves country metadata
-   - Calculates language coverage across countries
-2. **Frontend (Leaflet + Vanilla JS)**  
-   - Renders an interactive world map
-   - Handles language search and selection
-   - Updates map styles dynamically
-3. **Data Layer**  
-   - Based on Natural Earth geometry
-   - Enriched country/language data (optionally via OpenAI + web search)
-
----
-
-## 🛠️ Tech Stack
-
-- **Backend:** Python, FastAPI
+- **Backend:** Python, FastAPI, Jinja2
 - **Frontend:** HTML, CSS, Vanilla JavaScript
-- **Map Engine:** Leaflet.js
-- **Map Data:** Natural Earth (50m)
-- **Templates:** Jinja2
+- **Map Engine:** Leaflet.js + Natural Earth 50m GeoJSON
 - **Deployment:** Railway
-- **Optional Enrichment:** OpenAI Responses API + Web Search
 
 ---
 
-## 🚀 Run Locally
+## Run Locally
 
 ```bash
 git clone https://github.com/nikuznetsov/geolingo.git
@@ -70,47 +42,45 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 pip install -r requirements.txt
 uvicorn app:app --reload
-
-Open: http://127.0.0.1:8000
+# Open: http://127.0.0.1:8000
 ```
 
-##  📜 License
+---
 
-MIT License — free to use, modify, and distribute.
+## Project Structure
 
-## 🙌 Credits
-
-- Natural Earth — geographic data
-- OpenStreetMap & Leaflet ecosystem
-- Railway — deployment platform
-
-## 📬 Contacts
-
-If you have questions, ideas, or would like to collaborate, feel free to reach out:
-
-- 💼 **[LinkedIn](https://www.linkedin.com/in/nikita-kuznetsov-ab196a245/)**
-- 📧 **[Email](mailto:nikuznetsoff@gmail.com)** 
-- 🐙 **[GitHub](https://github.com/nikuznetsov)** 
+```
+app.py                        # FastAPI application
+data/
+  world_data.json             # Country + language dataset (ISO A3 keyed)
+  lingogrid_languages.json    # 90 languages with metadata for LingoGrid
+templates/
+  landing.html                # Home page (/)
+  index.html                  # GeoLingo (/geolingo)
+  lingogrid.html              # LingoGrid (/lingogrid)
+static/
+  world_50m.geojson           # Map geometry
+  location.png                # GeoLingo icon
+  lang-enjoyer.svg            # Brand icon
+  og-image.png                # Open Graph image
+```
 
 ---
 
-## ⚠️ Disclaimer
+## Contacts
 
-All numerical values presented in **GeoLingo** (including population figures and numbers of language speakers) are **approximate** and are derived from **open-source and publicly available data**.
-
-The project aims to provide **educational and exploratory insights**, not authoritative or official statistics.
-
-If you have **reliable evidence** that any data is inaccurate or outdated, you are welcome to:
-- open an **Issue** describing the discrepancy, or  
-- submit a **Pull Request** with corrected data **along with credible sources**.
-
-After verification, the data will be reviewed and updated accordingly.
-
-All geographic boundaries and map data are based on **open-source geographic datasets** (such as Natural Earth and related sources).  
-They may not reflect political positions, legal boundaries, or the views of any organization or government.
-
-Any suggestions, corrections, or improvements are welcome and can be shared via:
-- GitHub Issues / Pull Requests  
-- or directly through the contact information listed above.
+- 💼 [LinkedIn](https://www.linkedin.com/in/nikita-kuznetsov-ab196a245/)
+- 📧 [Email](mailto:nikuznetsoff@gmail.com)
+- 🐙 [GitHub](https://github.com/nikuznetsov)
 
 ---
+
+## Disclaimer
+
+All numerical values (population and speakers) are approximate and derived from open-source/publicly available data. Geographic boundaries are based on Natural Earth and related sources and may not reflect official political positions.
+
+If you find inaccurate data, please open an Issue or submit a PR with credible sources.
+
+---
+
+MIT License
