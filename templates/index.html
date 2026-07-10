@@ -103,9 +103,34 @@
       height: 64px;
       display: flex;
       align-items: center;
+      gap: 12px;
       padding: 0 16px;
       border-bottom: 1px solid var(--border);
       box-sizing: border-box;
+    }
+
+    .back-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 5px 9px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background .12s, color .12s;
+    }
+    .back-home:hover { background: #f3f4f6; color: var(--text); }
+
+    .topbar-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      flex-shrink: 0;
     }
 
     .brand-btn {
@@ -292,9 +317,12 @@
       background: #fff;
       color: var(--text);
       cursor: pointer;
-      flex: 1;
       font-family: inherit;
       font-weight: 600;
+    }
+
+    .btn-row button {
+      flex: 1;
     }
 
     button.primary {
@@ -311,13 +339,6 @@
       border-radius: 12px;
       font-size: 13px;
       line-height: 1.4;
-    }
-
-    .hint-text {
-      color: var(--muted);
-      font-size: 12px;
-      margin-top: 10px;
-      line-height: 1.35;
     }
 
     .warn { color: #b45309; }
@@ -365,40 +386,6 @@
     }
     .leaflet-container { -webkit-tap-highlight-color: transparent; }
 
-    .topbar-action {
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 13px;
-
-      display: inline-flex;          /* ВАЖНО */
-      align-items: center;           /* выравнивание по вертикали */
-      gap: 6px;                      /* расстояние между иконкой и текстом */
-      white-space: nowrap;           /* запрет переноса строки */
-
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(0,0,0,0.10);
-      background: #fff;
-      color: var(--text);
-      cursor: pointer;
-    }
-
-    .topbar-action {
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 13px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(0,0,0,0.10);
-      background: #fff;
-      color: var(--text);
-      cursor: pointer;
-    }
-
-    .topbar-action:hover {
-      background: #f9fafb;
-    }
-
     /* Modal */
     .modal-overlay {
       position: fixed;
@@ -441,129 +428,53 @@
       color: var(--text);
     }
 
-    .modal-close {
-      font-family: inherit;
-      font-size: 12px;          /* было больше */
-      font-weight: 700;
-      width: 28px;              /* было ~34px */
-      height: 28px;
-      line-height: 1;
-      border-radius: 8px;
-      border: 1px solid rgba(0,0,0,0.12);
-      background: #fff;
-      cursor: pointer;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-close:hover {
-      background: #f3f4f6;
-    }
-
     .modal-body {
-      padding: 14px;
+      padding: 20px 22px 24px;
       overflow: auto;
       max-height: calc(78vh - 52px);
       color: var(--text);
-      font-size: 13px;
-      line-height: 1.5;
+      font-size: 15px;
+      line-height: 1.6;
     }
 
     .modal-body h3 {
-      margin: 0 0 8px;
-      font-size: 13px;
+      margin: 24px 0 10px;
+      font-size: 15px;
       font-weight: 800;
+      letter-spacing: -.2px;
     }
 
+    .modal-body h3:first-child { margin-top: 0; }
+
     .modal-body ul {
-      margin: 8px 0 0 18px;
+      margin: 0 0 0 18px;
       padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .modal-body ul li {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .modal-body p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #374151;
+      margin: 0;
     }
 
     .modal-body code {
       background: #f3f4f6;
       padding: 2px 6px;
-      border-radius: 8px;
-    }
-
-    /* FORCE modal close button sizing */
-    #modalClose.modal-close {
-      width: 28px !important;
-      height: 28px !important;
-      min-width: 28px !important;
-      min-height: 28px !important;
-      padding: 0 !important;
-      font-size: 12px !important;
-      line-height: 1 !important;
-      font-weight: 700 !important;
-
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-
-      border-radius: 8px !important;
-    }
-
-    /*body { outline: 5px solid red !important; }*/
-
-    /* Fix stretched close button */
-    #modalClose {
-      flex: 0 0 auto !important;   /* не растягиваться */
-      width: 28px !important;
-      height: 28px !important;
-      min-width: 28px !important;
-      min-height: 28px !important;
-      padding: 0 !important;
-      margin-left: auto !important; /* прижать вправо */
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      line-height: 1 !important;
-      font-size: 12px !important;
-      border-radius: 10px !important;
-    }
-
-    /* Increase text size ONLY inside modal content */
-    .modal-body {
-      font-size: 15px;      /* было ~13px */
-      line-height: 1.6;     /* для читабельности */
-    }
-
-    /* Заголовки внутри модалки */
-    .modal-body h3 {
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    /* Списки */
-    .modal-body ul li {
-      font-size: 15px;
-    }
-
-    /* Inline code (Enter, Backspace и т.п.) */
-    .modal-body code {
-      font-size: 14px;
-    }
-
-    /* Hide modal title when not needed */
-    .modal.no-title .modal-header {
-      padding-bottom: 8px;
-    }
-
-    .modal.no-title .modal-body {
-      padding-top: 16px;
+      border-radius: 6px;
+      font-size: 13px;
     }
 
     .modal.no-title .modal-title {
       display: none;
-    }
-
-    .sidebar-actions{
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
     }
 
     .sidebar-action{
@@ -595,14 +506,12 @@
       line-height: 1;
     }
 
-    /* Remove header completely when title is hidden */
     .modal.no-title .modal-header {
       display: none;
     }
 
-    /* Remove extra top padding when header is gone */
     .modal.no-title .modal-body {
-      padding-top: 16px; /* можно 12px, если хочешь ещё плотнее */
+      padding-top: 16px;
     }
 
     /* Floating close button */
@@ -632,58 +541,6 @@
 
     .modal-close-floating:hover {
       background: #f3f4f6;
-    }
-
-    /* Two-column layout ONLY for Contacts modal content */
-    .contacts-grid{
-      display: grid;
-      grid-template-columns: 1fr 1.3fr; /* справа чуть шире для текста */
-      gap: 18px;
-      align-items: start;
-    }
-
-    .contacts-col h3{
-      margin-top: 0;
-    }
-
-    /* list style tighter */
-    .contacts-list{
-      margin: 8px 0 0 18px;
-      padding: 0;
-    }
-
-    .contacts-list li{
-      margin: 6px 0;
-    }
-
-    /* Responsive: stack on small screens */
-    @media (max-width: 640px){
-      .contacts-grid{
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Center content only inside Contacts column */
-    .contacts-col.contacts-center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;   /* горизонтальное центрирование */
-      text-align: center;    /* текст по центру */
-    }
-
-    .contacts-list li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .contacts-list a {
-      padding: 6px 10px;
-      border-radius: 10px;
-      background: #f3f4f6;
-    }
-    .contacts-list a:hover {
-      background: #e5e7eb;
     }
 
     /* =========================
@@ -746,15 +603,6 @@
         min-height: 44px;
       }
 
-      /* Кнопки Guide/Contacts: 2 в ряд, переносятся */
-      .sidebar-actions {
-        flex-wrap: wrap;
-      }
-      .sidebar-action {
-        flex: 1 1 calc(50% - 5px);
-        height: 44px;
-      }
-
       /* Карточка страны в сайдбаре: более “плотная” */
       .fixed-tooltip .card {
         box-shadow: 0 10px 24px rgba(0,0,0,0.12);
@@ -775,10 +623,6 @@
         right: 10px;
       }
 
-      /* Contacts: на телефоне в одну колонку */
-      .contacts-grid {
-        grid-template-columns: 1fr;
-      }
     }
 
     /* Очень маленькие экраны */
@@ -798,6 +642,8 @@
 
 <body>
 <header class="topbar">
+  <a class="back-home" href="/">&#8592; Back</a>
+  <div class="topbar-sep"></div>
   <!-- Clickable brand: reset -->
   <div class="brand-btn brand-static">
     <img
@@ -811,10 +657,6 @@
       <div class="brand-subtitle">Explore languages across the globe</div>
     </div>
 
-    <div class="topbar-actions">
-<!--      <button id="btnInstructions" class="topbar-action" type="button">📘 Guide</button>-->
-<!--      <button id="btnContacts" class="topbar-action" type="button">📬 Contacts</button>-->
-    </div>
 
 
   </div>
@@ -835,20 +677,14 @@
       <button id="clear" class="primary" type="button">Reset</button>
     </div>
 
-    <div class="sidebar-actions">
+    <div class="btn-row" style="margin-top:10px">
       <button id="btnInstructions" class="sidebar-action" type="button">
         <span class="ico">📘</span><span>Guide</span>
-      </button>
-      <button id="btnContacts" class="sidebar-action" type="button">
-        <span class="ico">📬</span><span>Contacts</span>
       </button>
     </div>
 
     <div class="stat" id="stat">Loading…</div>
 
-<!--    <div class="hint-text">-->
-<!--      Hover over a country to see details below.-->
-<!--    </div>-->
 
     <div id="fixedTooltip" class="fixed-tooltip hidden">
       <div class="card" id="fixedTooltipCard"></div>
@@ -889,6 +725,12 @@
     {% endfor %}
   ];
 
+  const _esc = document.createElement('div');
+  function escHtml(s) {
+    _esc.textContent = String(s ?? '');
+    return _esc.innerHTML;
+  }
+
   // ====== State ======
   let selectedLanguages = [];
   let activeSuggestIndex = -1;
@@ -900,8 +742,6 @@
   const tagsEl = document.getElementById('tags');
   const statEl = document.getElementById('stat');
   const clearBtn = document.getElementById('clear');
-{#  const brandResetBtn = document.getElementById('brandReset');#}
-
   const fixedTooltip = document.getElementById('fixedTooltip');
   const fixedTooltipCard = document.getElementById('fixedTooltipCard');
 
@@ -1045,12 +885,19 @@
       return;
     }
 
-    const res = await fetch('/api/coverage', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ languages: selectedLanguages })
-    });
-    const data = await res.json();
+    let data;
+    try {
+      const res = await fetch('/api/coverage', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ languages: selectedLanguages })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      data = await res.json();
+    } catch (err) {
+      statEl.innerHTML = `<div class="warn">Failed to fetch coverage. Please try again.</div>`;
+      return;
+    }
 
     coveredIso3 = new Set(data.covered_iso_a3 || []);
     if (geoLayer) geoLayer.setStyle(styleFeature);
@@ -1078,8 +925,6 @@
   }
 
   clearBtn.addEventListener('click', resetAll);
-{#  brandResetBtn.addEventListener('click', resetAll);#}
-
   // ====== Input handlers ======
   inputEl.addEventListener('input', () => openSuggest(suggestFor(inputEl.value)));
 
@@ -1227,14 +1072,26 @@
 
 
   async function loadCountryInfo() {
-    const res = await fetch('/api/country_info');
-    const data = await res.json();
-    countryInfoByIso3 = data.countries_by_iso_a3 || {};
+    try {
+      const res = await fetch('/api/country_info');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      countryInfoByIso3 = data.countries_by_iso_a3 || {};
+    } catch (err) {
+      statEl.innerHTML = `<div class="warn">Failed to load country data.</div>`;
+    }
   }
 
   async function loadWorld() {
-    const res = await fetch(WORLD_GEOJSON_URL);
-    const geojson = await res.json();
+    let geojson;
+    try {
+      const res = await fetch(WORLD_GEOJSON_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      geojson = await res.json();
+    } catch (err) {
+      statEl.innerHTML = `<div class="warn">Failed to load map data.</div>`;
+      return;
+    }
     totalCountriesOnMap = (geojson.features || []).length;
 
     geoLayer = L.geoJSON(geojson, {
@@ -1244,7 +1101,7 @@
           const iso3 = getIsoA3(feature);
           const info = iso3 ? countryInfoByIso3[iso3] : null;
 
-          const name = info ? info.name : getName(feature);
+          const name = escHtml(info ? info.name : getName(feature));
           const iso2 = getIsoA2(feature, iso3).toLowerCase();
           const flagHtml =
             iso2 && /^[a-z]{2}$/.test(iso2)
@@ -1257,7 +1114,7 @@
 
           const langsHtml = (langs.length ? langs : ["n/a"]).map(l => {
             const spk = speakersByLang[l] ?? 0;
-            return `<div><strong>${l}</strong>: ${fmtInt(spk)}</div>`;
+            return `<div><strong>${escHtml(l)}</strong>: ${fmtInt(spk)}</div>`;
           }).join("");
 
           const cardHtml = `
@@ -1306,7 +1163,6 @@
   const modalClose = document.getElementById('modalClose');
 
   const btnInstructions = document.getElementById('btnInstructions');
-  const btnContacts = document.getElementById('btnContacts');
 
   function openModal(title, html, options = {}) {
     const { hideTitle = false } = options;
@@ -1317,6 +1173,7 @@
     modalRoot.classList.toggle('no-title', hideTitle);
 
     modalOverlay.classList.remove('hidden');
+    modalOverlay.removeAttribute('aria-hidden');
   }
 
   function closeModal() {
@@ -1351,35 +1208,15 @@
       <li>Hover over a country to see details (flag, official languages, speakers, population).</li>
       <li>Use <strong>Reset</strong> to clear selections.</li>
     </ul>
-    <h3>\n</h3>
     <h3>Notes</h3>
     <ul>
       <li>Country borders are based on open-source geographic datasets (Natural Earth and related sources).</li>
       <li>Some regions may be represented differently depending on the source dataset.</li>
     </ul>
+    <h3>Disclaimer</h3>
+    <p>All numerical values (population and speakers) are approximate and derived from open-source/publicly available data. If you have reliable evidence that data is inaccurate, please open an Issue or submit a PR with credible sources.</p>
   `;
 
-  const CONTACTS_HTML = `
-    <div class="contacts-grid">
-      <div class="contacts-col contacts-center">
-        <h3>Contacts</h3>
-        <ul class="contacts-list">
-          <li>💼 <a href="https://www.linkedin.com/in/nikita-kuznetsov-ab196a245/" target="_blank" rel="noreferrer">LinkedIn</a></li>
-          <li>📧 <a href="mailto:nikuznetsoff@gmail.com">Email</a></li>
-          <li>🐙 <a href="https://github.com/nikuznetsov" target="_blank" rel="noreferrer">GitHub</a></li>
-        </ul>
-      </div>
-
-      <div class="contacts-col">
-        <h3>Disclaimer</h3>
-        <p>
-          All numerical values (population and speakers) are approximate and derived from open-source/publicly
-          available data. If you have reliable evidence that data is inaccurate, please open an Issue or submit
-          a PR with credible sources.
-        </p>
-      </div>
-    </div>
-  `;
 
 
 
@@ -1388,9 +1225,6 @@
     openModal('', INSTRUCTIONS_HTML, { hideTitle: true })
   );
 
-  btnContacts.addEventListener('click', () =>
-    openModal('', CONTACTS_HTML, { hideTitle: true })
-  );
 
 </script>
 </body>

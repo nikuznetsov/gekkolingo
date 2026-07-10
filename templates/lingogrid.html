@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>LingoGrid — Daily Language Puzzle</title>
+  <meta name="description" content="A daily language grid puzzle. Find a language that satisfies both a row and column category."/>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --bg: #f9fafb;
+      --white: #fff;
+      --green: #16a34a;
+      --green-bg: #dcfce7;
+      --green-border: #86efac;
+      --shadow: 0 4px 20px rgba(0,0,0,0.08);
+      --radius: 14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .page { min-height: 100%; display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    .header {
+      height: 56px; padding: 0 20px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid var(--border); background: var(--white);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      text-decoration: none; padding: 5px 9px; border-radius: 8px;
+      border: 1px solid var(--border); flex-shrink: 0;
+      transition: background .12s, color .12s; white-space: nowrap;
+    }
+    .back-link:hover { background: #f3f4f6; color: var(--text); }
+    .header-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+    .header-brand { display: inline-flex; align-items: center; gap: 10px; }
+    .header-brand-icon { width: 32px; height: 32px; flex-shrink: 0; }
+    .header-brand-text { display: flex; flex-direction: column; gap: 1px; }
+    .header-name {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 700; font-size: 20px; letter-spacing: -.5px; line-height: 1.05; white-space: nowrap;
+    }
+    .header-subtitle {
+      font-size: 12px; color: var(--muted); line-height: 1.1; white-space: nowrap;
+    }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .header-date { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+    .header-btn {
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      padding: 5px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--white);
+      color: var(--text); cursor: pointer; white-space: nowrap;
+      transition: background .12s;
+    }
+    .header-btn:hover { background: #f3f4f6; }
+    .header-score {
+      font-size: 13px; font-weight: 700;
+      padding: 5px 10px; border-radius: 8px;
+      background: var(--text); color: #fff; white-space: nowrap;
+      cursor: default; transition: opacity .12s;
+    }
+    .header-score.clickable { cursor: pointer; }
+    .header-score.clickable:hover { opacity: .82; }
+    .header-past-badge {
+      font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+      background: #fef9c3; color: #713f12; border: 1px solid #fde047;
+      white-space: nowrap;
+    }
+
+    /* ── Main ── */
+    .main {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; padding: 20px 16px 40px; gap: 14px;
+    }
+
+    /* ── Guesses bar ── */
+    .guesses-bar {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+    }
+    .guess-dots { display: flex; gap: 5px; }
+    .guess-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 2px solid #d1d5db; background: transparent;
+      transition: background .2s, border-color .2s;
+    }
+    .guess-dot.used    { background: #fca5a5; border-color: #ef4444; }
+    .guess-dot.correct { background: var(--green); border-color: var(--green); }
+
+    /* ── Grid ── */
+    .grid-wrap {
+      display: grid;
+      grid-template-columns: 100px repeat(3, 1fr);
+      grid-template-rows: auto repeat(3, 1fr);
+      gap: 6px; width: 100%; max-width: 680px;
+    }
+    .corner { /* empty */ }
+
+    /* Category headers — clickable */
+    .cat-header {
+      padding: 10px 10px 10px 12px;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 10px; font-size: 12px; font-weight: 700;
+      line-height: 1.35; color: var(--text);
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
+      user-select: none;
+    }
+    .cat-header:hover { background: #f3f4f6; border-color: #d1d5db; }
+    .cat-header.col-cat { justify-content: center; text-align: center; flex-direction: column; gap: 4px; }
+    .cat-header.row-cat { justify-content: flex-end; text-align: right; flex-direction: row-reverse; }
+    .cat-info-icon {
+      flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%;
+      background: #e5e7eb; color: #6b7280;
+      font-size: 10px; font-weight: 800;
+      display: inline-flex; align-items: center; justify-content: center;
+      line-height: 1; transition: background .12s, color .12s;
+    }
+    .cat-header:hover .cat-info-icon { background: #d1d5db; color: var(--text); }
+
+    /* Game cells */
+    .cell {
+      aspect-ratio: 1; border-radius: 12px;
+      border: 2px solid var(--border); background: var(--white);
+      cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+      padding: 8px; transition: border-color .15s, background .15s, transform .12s;
+      position: relative; overflow: hidden;
+    }
+    .cell:hover:not(.cell--correct):not(.cell--done) {
+      border-color: #9ca3af; background: #f9fafb; transform: scale(1.02);
+    }
+    .cell--correct { border-color: var(--green-border); background: var(--green-bg); cursor: default; }
+    .cell--done    { cursor: default; }
+
+    .cell-lang {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-size: 13px; font-weight: 700; text-align: center;
+      line-height: 1.2; color: var(--green);
+    }
+    .cell-score { font-size: 11px; font-weight: 600; color: var(--green); opacity: .85; }
+    .cell-prompt { font-size: 22px; color: #d1d5db; line-height: 1; }
+    .cell-wrong-dots {
+      display: flex; gap: 3px; flex-wrap: wrap;
+      justify-content: center; position: absolute; bottom: 5px;
+    }
+    .cell-wrong-dot { width: 7px; height: 7px; border-radius: 50%; background: #fca5a5; }
+    .cell-badge {
+      position: absolute; top: 5px; right: 5px;
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+
+    /* ── Score row ── */
+    .score-row {
+      display: flex; gap: 24px; align-items: center;
+      font-size: 13px; color: var(--muted);
+    }
+    .score-val { font-weight: 700; color: var(--text); font-size: 15px; }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+      font-size: 12px; color: var(--muted);
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Category description popover ── */
+    .cat-popover {
+      position: fixed; z-index: 400;
+      background: var(--white); border-radius: 12px;
+      border: 1px solid rgba(0,0,0,.10);
+      box-shadow: 0 12px 36px rgba(0,0,0,.18);
+      padding: 14px 16px; max-width: 300px;
+      pointer-events: auto;
+    }
+    .cat-popover.hidden { display: none; }
+    .cat-popover-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .cat-popover-title {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 700; font-size: 13px; line-height: 1.3; color: var(--text);
+    }
+    .cat-popover-x {
+      width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--white);
+      font-size: 10px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cat-popover-x:hover { background: #f3f4f6; }
+    .cat-popover-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    /* ── Mini result grid in archive ── */
+    .mini-grid {
+      display: grid; grid-template-columns: repeat(3, 9px);
+      gap: 2px; flex-shrink: 0;
+    }
+    .mg-cell {
+      width: 9px; height: 9px; border-radius: 2px; background: #e5e7eb;
+    }
+    .mg-cell.solved { background: #86efac; }
+    .archive-stat {
+      font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap;
+    }
+    .archive-stat.hi { color: var(--green); }
+
+    /* ── Overlays ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(17,24,39,.45);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .overlay.hidden { display: none; }
+
+    /* ── Guess modal ── */
+    .guess-modal {
+      background: var(--white); border-radius: 18px;
+      border: 1px solid rgba(0,0,0,.09);
+      box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      width: min(440px, 100%); padding: 20px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .modal-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .modal-cats { display: flex; flex-direction: column; gap: 4px; }
+    .modal-cat-label {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .modal-cat-value { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .modal-x {
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(0,0,0,.12);
+      background: var(--white); cursor: pointer; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .modal-x:hover { background: #f3f4f6; }
+    .modal-difficulty { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-weight: 600; }
+    .diff-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    .search-wrap { position: relative; }
+    .search-input {
+      width: 100%; font-size: 15px; padding: 10px 12px;
+      border: 1.5px solid #d1d5db; border-radius: 10px;
+      outline: none; font-family: inherit; color: var(--text);
+    }
+    .search-input:focus { border-color: #9ca3af; box-shadow: 0 0 0 3px rgba(156,163,175,.25); }
+    .search-input::placeholder { color: #9ca3af; }
+    .autocomplete {
+      position: absolute; left: 0; right: 0; top: calc(100% + 6px);
+      background: var(--white); border: 1px solid rgba(0,0,0,.10);
+      border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.12);
+      max-height: 220px; overflow-y: auto; z-index: 10; display: none;
+    }
+    .autocomplete.open { display: block; }
+    .ac-item { padding: 9px 12px; font-size: 13px; cursor: pointer; }
+    .ac-item:hover, .ac-item.active { background: #f3f4f6; }
+
+    .modal-submit {
+      width: 100%; padding: 11px; border-radius: 10px;
+      border: none; background: var(--text); color: #fff;
+      font-family: inherit; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .modal-submit:disabled { opacity: .4; cursor: not-allowed; }
+    .modal-submit:not(:disabled):hover { opacity: .88; }
+    .modal-feedback {
+      padding: 10px 12px; border-radius: 10px; font-size: 13px;
+      font-weight: 600; text-align: center; display: none;
+    }
+    .modal-feedback.show { display: block; }
+    .modal-feedback.correct { background: var(--green-bg); color: var(--green); }
+    .modal-feedback.wrong   { background: #fee2e2; color: #b91c1c; }
+
+    /* ── Archive modal ── */
+    .archive-modal {
+      background: var(--white); border-radius: 18px;
+      border: 1px solid rgba(0,0,0,.09);
+      box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      width: min(520px, 100%);
+      display: flex; flex-direction: column;
+      max-height: min(86vh, 640px); overflow: hidden;
+    }
+    .archive-hd {
+      padding: 18px 20px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .archive-hd-left { display: flex; flex-direction: column; gap: 2px; }
+    .archive-title {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 700; font-size: 16px; letter-spacing: -.3px;
+    }
+    .archive-subtitle { font-size: 12px; color: var(--muted); }
+    .archive-body { overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+
+    .archive-section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--muted);
+      margin-top: 8px; padding-bottom: 4px;
+    }
+    .archive-section-label:first-child { margin-top: 0; }
+
+    .archive-entry {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--white);
+      cursor: pointer; transition: background .12s, border-color .12s;
+      text-decoration: none; color: inherit;
+    }
+    .archive-entry:hover { background: #f9fafb; border-color: #d1d5db; }
+    .archive-entry.is-today { border-color: #6ee7b7; background: #f0fdf4; }
+    .archive-entry.is-today:hover { background: #dcfce7; }
+    .archive-entry.is-active { border-color: #111827; background: #f9fafb; }
+
+    .archive-entry-date {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 700; font-size: 14px; min-width: 80px; flex-shrink: 0;
+    }
+    .archive-entry-num { font-size: 12px; color: var(--muted); flex-shrink: 0; min-width: 54px; }
+    .archive-entry-status { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .archive-badge {
+      font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+    }
+    .badge-today    { background: #dcfce7; color: var(--green); }
+    .badge-solved   { background: #f0fdf4; color: var(--green); border: 1px solid #86efac; }
+    .badge-upcoming { background: #f3f4f6; color: var(--muted); }
+    .badge-current  { background: #111827; color: #fff; }
+    .archive-score  { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+    /* ── End modal ── */
+    .end-modal {
+      background: var(--white); border-radius: 18px;
+      border: 1px solid rgba(0,0,0,.09);
+      box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      width: min(440px, 100%); padding: 28px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      text-align: center;
+    }
+    .end-title {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 800; font-size: 24px; letter-spacing: -.5px;
+    }
+    .end-score-big {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 800; font-size: 52px; letter-spacing: -2px; color: var(--green); line-height: 1;
+    }
+    .end-max { font-size: 14px; color: var(--muted); }
+    .end-grid { display: grid; grid-template-columns: repeat(3, 40px); gap: 5px; }
+    .end-cell {
+      width: 40px; height: 40px; border-radius: 8px;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .end-cell.c { border-color: var(--green-border); background: var(--green-bg); }
+    .end-cell.e { background: #f3f4f6; }
+    .end-actions { display: flex; gap: 10px; width: 100%; }
+    .end-btn {
+      flex: 1; padding: 11px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--white);
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      cursor: pointer; color: var(--text); transition: background .12s;
+    }
+    .end-btn:hover { background: #f3f4f6; }
+    .end-btn.primary { background: var(--text); color: #fff; border-color: var(--text); }
+    .end-btn.primary:hover { opacity: .88; }
+    .end-close { font-size: 13px; color: var(--muted); cursor: pointer; text-decoration: underline; }
+
+    /* ── Loading / Error ── */
+    .loading {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--muted);
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 540px) {
+      .grid-wrap { grid-template-columns: 72px repeat(3, 1fr); gap: 4px; }
+      .cat-header { font-size: 10px; padding: 6px 6px; }
+      .cat-info-icon { width: 14px; height: 14px; font-size: 9px; }
+      .cell-lang { font-size: 11px; }
+      .cell-score { font-size: 10px; }
+      .cell-prompt { font-size: 18px; }
+      .header-date { display: none; }
+      .header-subtitle { display: none; }
+      .cat-popover { max-width: calc(100vw - 32px); }
+      .archive-entry-num { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <a class="back-link" href="/">← Back</a>
+    <div class="header-sep"></div>
+    <div class="header-brand">
+      <svg class="header-brand-icon" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="24" y1="4"  x2="24" y2="68" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="48" y1="4"  x2="48" y2="68" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="4"  y1="24" x2="68" y2="24" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="4"  y1="48" x2="68" y2="48" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>
+        <text x="12" y="18" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,serif" font-size="13" fill="#7c3aed" font-weight="700">A</text>
+        <text x="36" y="18" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,serif" font-size="13" fill="#7c3aed" font-weight="700">Я</text>
+        <text x="60" y="18" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,serif" font-size="13" fill="#7c3aed" font-weight="700">α</text>
+        <text x="12" y="36" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,serif" font-size="13" fill="#7c3aed" font-weight="700">文</text>
+        <text x="36" y="36" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,serif" font-size="14" fill="#7c3aed" font-weight="700">ש</text>
+        <text x="60" y="36" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,serif" font-size="13" fill="#7c3aed" font-weight="700">ع</text>
+        <text x="12" y="58" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,serif" font-size="12" fill="#7c3aed" font-weight="700">ก</text>
+        <text x="36" y="58" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,serif" font-size="13" fill="#7c3aed" font-weight="700">ñ</text>
+        <text x="60" y="57" text-anchor="middle" dominant-baseline="middle" font-family="Georgia,serif" font-size="13" fill="#7c3aed" font-weight="700">Ω</text>
+      </svg>
+      <div class="header-brand-text">
+        <div class="header-name">LingoGrid</div>
+        <div class="header-subtitle">Daily language grid puzzle</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="pastBadge" class="header-past-badge" style="display:none">Past puzzle</span>
+      <span class="header-date" id="headerDate"></span>
+      <button class="header-btn" id="btnArchive" type="button">📅 Archive</button>
+      <span class="header-score" id="headerScore">0 pts</span>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+    <div class="loading" id="loadingMsg">Loading puzzle…</div>
+  </main>
+
+</div>
+
+<!-- Category description popover -->
+<div class="cat-popover hidden" id="catPopover">
+  <div class="cat-popover-header">
+    <div class="cat-popover-title" id="catPopoverTitle"></div>
+    <button class="cat-popover-x" id="catPopoverX" type="button">✕</button>
+  </div>
+  <div class="cat-popover-desc" id="catPopoverDesc"></div>
+</div>
+
+<!-- Guess modal -->
+<div class="overlay hidden" id="guessOverlay">
+  <div class="guess-modal">
+    <div class="modal-hd">
+      <div class="modal-cats">
+        <div class="modal-cat-label">Row category</div>
+        <div class="modal-cat-value" id="mRowCat">—</div>
+        <div class="modal-cat-label" style="margin-top:8px">Column category</div>
+        <div class="modal-cat-value" id="mColCat">—</div>
+      </div>
+      <button class="modal-x" id="modalX" type="button">✕</button>
+    </div>
+    <div class="modal-difficulty" id="mDiff"></div>
+    <div class="search-wrap">
+      <input class="search-input" id="searchInput" type="text"
+             placeholder="Type a language…" autocomplete="off"/>
+      <div class="autocomplete" id="autocomplete"></div>
+    </div>
+    <div class="modal-feedback" id="modalFeedback"></div>
+    <button class="modal-submit" id="modalSubmit" type="button" disabled>Submit</button>
+  </div>
+</div>
+
+<!-- Archive modal -->
+<div class="overlay hidden" id="archiveOverlay">
+  <div class="archive-modal">
+    <div class="archive-hd">
+      <div class="archive-hd-left">
+        <div class="archive-title">Puzzle Archive</div>
+        <div class="archive-subtitle">−25 · · · today · · · +25</div>
+      </div>
+      <button class="modal-x" id="archiveX" type="button">✕</button>
+    </div>
+    <div class="archive-body" id="archiveBody"></div>
+  </div>
+</div>
+
+<!-- End modal -->
+<div class="overlay hidden" id="endOverlay">
+  <div class="end-modal">
+    <div class="end-title" id="endTitle">Puzzle complete!</div>
+    <div class="end-score-big" id="endScore">0</div>
+    <div class="end-max" id="endMax">out of 900 pts</div>
+    <div class="end-grid" id="endGrid"></div>
+    <div class="end-actions">
+      <button class="end-btn primary" id="endShare" type="button">Copy result</button>
+      <button class="end-btn" id="endArchive" type="button">📅 Archive</button>
+    </div>
+    <span class="end-close" id="endClose">Close</span>
+  </div>
+</div>
+
+<script>
+// ── Category descriptions ────────────────────────────────────────────────────
+const CATEGORY_DESCRIPTIONS = {
+  "Written in Latin script":
+    "Uses the Roman (Latin) alphabet — the same A–Z letters used for English. Adopted by most European and many non-European languages through colonialism and standardization. Around half of all written languages today use this script.",
+  "Written in Arabic script":
+    "Written right-to-left using the Arabic abjad (28 base letters that can be joined in up to four forms). Beyond Arabic itself, this script serves Persian (Farsi), Urdu, Pashto, Uyghur, and several others.",
+  "Written in Cyrillic script":
+    "Developed in 9th-century Bulgaria, based on Greek. Used across Slavic countries and Central Asia — including Russian, Ukrainian, Bulgarian, Serbian, Mongolian, Uzbek, and Kazakh.",
+  "Written in Devanagari script":
+    "An abugida (alphasyllabary) from South Asia where each symbol represents a consonant with an inherent vowel, modified by diacritics. Used for Hindi, Marathi, Nepali, and Sanskrit.",
+  "Written in Chinese characters":
+    "Logographic Hanzi characters represent words or morphemes — not sounds. Tens of thousands exist; modern literacy requires ~3,000. Shared (in adapted forms) by Mandarin, Cantonese, Japanese, and Korean.",
+  "Official language in Europe":
+    "Recognized as an official or national language in at least one sovereign European state. Europe's ~50 countries host languages from Indo-European, Uralic, Turkic, Kartvelian, and Basque (isolate) families.",
+  "Official language in Africa":
+    "Holds official status in at least one of Africa's 54 sovereign countries — the continent with the greatest linguistic diversity on Earth (~2,000+ languages).",
+  "Official language in Asia":
+    "Official or national language in at least one of Asia's 49 countries. Asia spans the world's most populous nations and extraordinary script diversity.",
+  "Official language in Americas":
+    "Official or national in at least one country in North America, Central America, South America, or the Caribbean. Most are legacy colonial languages (Spanish, English, Portuguese, French, Dutch).",
+  "Official in 5+ countries":
+    "Recognized as an official language in five or more sovereign states. Only a handful qualify — mostly through colonial history (English, French, Spanish, Portuguese, Arabic) or regional dominance (Swahili, Russian).",
+  "Official in 3+ countries":
+    "Official language in at least three sovereign states, reflecting notable regional spread or historical influence.",
+  "100M+ native speakers":
+    "Has one hundred million or more first-language (L1) speakers. Fewer than 20 languages on Earth reach this threshold — these are the lingua francas and demographic giants.",
+  "10M–99M native speakers":
+    "Between 10 and 99 million native speakers — large languages with significant national presence or regional importance.",
+  "Under 10M native speakers":
+    "Fewer than 10 million native (L1) speakers. Includes many smaller national languages, regional languages, and minority languages.",
+  "Indo-European family":
+    "Earth's largest language family by number of speakers (~3.2 billion). Stretches from Iceland to Bangladesh, and includes the Romance, Germanic, Slavic, Indo-Aryan, and Iranian branches.",
+  "Romance language":
+    "Descended from Vulgar Latin after the fall of the Roman Empire. The six major Romance languages are Spanish, Portuguese, French, Italian, Romanian, and Catalan.",
+  "Germanic language":
+    "Descended from Proto-Germanic, spoken in northern Europe ~2,500 years ago. Includes English, German, Dutch, Swedish, Norwegian, Danish, and Afrikaans.",
+  "Slavic language":
+    "A branch of Indo-European spoken by ~400 million people across Eastern Europe and northern Asia. Includes Russian, Polish, Ukrainian, Czech, Serbian, Croatian, Bulgarian, Belarusian, and others.",
+  "Semitic language":
+    "A branch of Afro-Asiatic with the longest continuous written records. The most spoken is Arabic; others include Hebrew, Amharic (Ethiopia), Tigrinya (Eritrea/Ethiopia), and Maltese (Europe's only Semitic official language).",
+  "Sino-Tibetan family":
+    "The second-largest family by speakers (~1.3 billion). Includes Mandarin, Cantonese, Tibetan, and Burmese. Most languages in this family are tonal — pitch changes word meaning.",
+  "Austronesian family":
+    "One of the largest families by number of languages (~1,200). Spans from Taiwan to Madagascar and Easter Island. Includes Indonesian, Malay, Filipino (Tagalog), and Malagasy.",
+  "Turkic language":
+    "A family originating in Central Asia, sharing grammar structure and core vocabulary. Turkish, Uzbek, Kazakh, Azerbaijani, Kyrgyz, Turkmen, and Uyghur all belong here.",
+  "Dravidian language":
+    "A family indigenous to South Asia, predating the Indo-European migrations. The four major literary Dravidian languages are Telugu, Tamil, Kannada, and Malayalam — all with ancient written traditions.",
+  "Afro-Asiatic family":
+    "~400 languages across North Africa, the Horn of Africa, and the Middle East (~500M speakers total). Includes Arabic, Hebrew, Amharic, Hausa, Somali, and Oromo.",
+  "Niger-Congo family":
+    "The world's largest language family by number of languages (1,500+), dominant in sub-Saharan Africa. Includes Swahili, Yoruba, Zulu, Igbo, Lingala, Kinyarwanda, and hundreds more.",
+  "Tonal language":
+    "A language where the pitch (tone) of a syllable is phonemic — changing the tone changes the word's meaning. Mandarin has 4 tones, Vietnamese 6, Thai 5, Zulu and Yoruba use tones too. Found across East/Southeast Asia and sub-Saharan Africa.",
+  "UN official language":
+    "One of exactly six languages recognized as official working languages of the United Nations, used in all formal meetings and documents: English, French, Spanish, Russian, Arabic, and Mandarin Chinese.",
+  "Has click consonants":
+    "Contains click sounds as regular consonants — produced by a velaric airstream (tongue suction) rather than pulmonic airflow. Found mainly in southern African languages: Zulu (isiZulu !), Xhosa (isiXhosa), and Nama/Khoekhoe.",
+  "Uralic language":
+    "A family stretching from Norway to Siberia, completely unrelated to Indo-European despite geography. The Finno-Ugric branch includes Finnish, Estonian, and Hungarian — famous for agglutinative morphology and no grammatical gender.",
+  "Iranian language":
+    "A branch of Indo-European originating on the Iranian plateau. Includes Persian (Farsi), Pashto, Kurdish, Tajik, and Ossetic — spread across the Middle East, Central and South Asia.",
+};
+
+const DIFFICULTY_COLORS = {
+  white:      { dot: '#d1d5db', label: '5+ answers' },
+  green:      { dot: '#4ade80', label: '3–7 answers' },
+  yellow:     { dot: '#facc15', label: '2–3 answers' },
+  orange:     { dot: '#fb923c', label: '1 answer' },
+  impossible: { dot: '#f87171', label: 'No answers' },
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+const MAX_GUESSES = 9;
+let puzzle    = null;
+let gameState = null;
+let allLangs  = [];
+let currentDate = todayISO();
+let activeCell  = null;
+let acIndex = -1, acItems = [];
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+function stateKey(d) { return `lingogrid_state_${d}`; }
+function emptyState() {
+  return {
+    guesses_left: MAX_GUESSES,
+    cells: Array.from({ length: 3 }, () =>
+      Array.from({ length: 3 }, () => ({ status: 'empty', answer: null, score: 0, wrong_count: 0 }))
+    ),
+    total_score: 0,
+  };
+}
+function saveState() { localStorage.setItem(stateKey(currentDate), JSON.stringify(gameState)); }
+function loadSavedState(d) {
+  const raw = localStorage.getItem(stateKey(d));
+  return raw ? JSON.parse(raw) : null;
+}
+function isGameOver() {
+  if (!gameState) return false;
+  if (gameState.guesses_left <= 0) return true;
+  return gameState.cells.every(row => row.every(c => c.status === 'correct'));
+}
+function isToday() { return currentDate === todayISO(); }
+function archiveDates() {
+  const today = new Date(todayISO() + 'T00:00:00');
+  const dates = [];
+  for (let i = -24; i <= 25; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+function formatDate(isoStr) {
+  const d = new Date(isoStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function formatDateShort(isoStr) {
+  const d = new Date(isoStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function puzzleNumber(isoStr) {
+  const epoch = new Date('2026-03-25T00:00:00');
+  const d = new Date(isoStr + 'T00:00:00');
+  return Math.round((d - epoch) / 86400000) + 1;
+}
+
+// ── API ──────────────────────────────────────────────────────────────────────
+async function fetchPuzzle(d) {
+  const res = await fetch(`/api/lingogrid/puzzle?date=${d}`);
+  if (!res.ok) throw new Error('Failed to load puzzle');
+  return res.json();
+}
+async function submitGuess(row, col, language) {
+  const res = await fetch('/api/lingogrid/guess', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ row, col, language, date: currentDate }),
+  });
+  if (!res.ok) throw new Error('Request failed');
+  return res.json();
+}
+
+// ── Load a date ───────────────────────────────────────────────────────────────
+async function loadDate(d) {
+  currentDate = d;
+  document.getElementById('loadingMsg') && (document.getElementById('main').innerHTML =
+    '<div class="loading" id="loadingMsg">Loading puzzle…</div>');
+  document.getElementById('main').innerHTML = '<div class="loading">Loading puzzle…</div>';
+
+  try {
+    puzzle = await fetchPuzzle(d);
+  } catch {
+    document.getElementById('main').innerHTML =
+      '<div class="loading">Failed to load puzzle. Please refresh.</div>';
+    return;
+  }
+
+  allLangs = puzzle.language_names || [];
+  const saved = loadSavedState(d);
+  gameState = saved || emptyState();
+
+  document.getElementById('headerDate').textContent = formatDate(d);
+  document.getElementById('pastBadge').style.display = isToday() ? 'none' : '';
+  renderGrid();
+
+  const scoreEl = document.getElementById('headerScore');
+  if (isGameOver()) {
+    scoreEl.classList.add('clickable');
+    scoreEl.title = 'Click to see results';
+  } else {
+    scoreEl.classList.remove('clickable');
+    scoreEl.title = '';
+  }
+}
+
+// ── Category popover ──────────────────────────────────────────────────────────
+let popoverOpen = false;
+function showCatPopover(anchorEl, cat) {
+  const desc = CATEGORY_DESCRIPTIONS[cat];
+  if (!desc) return;
+
+  const pop = document.getElementById('catPopover');
+  document.getElementById('catPopoverTitle').textContent = cat;
+  document.getElementById('catPopoverDesc').textContent = desc;
+  pop.classList.remove('hidden');
+  popoverOpen = true;
+
+  // Position below anchor, clamped to viewport
+  const rect = anchorEl.getBoundingClientRect();
+  const pw = 300, ph = pop.offsetHeight || 160;
+  const vw = window.innerWidth, vh = window.innerHeight;
+
+  let left = rect.left;
+  let top  = rect.bottom + 8;
+
+  // Clamp right
+  if (left + pw > vw - 8) left = vw - pw - 8;
+  // Clamp left
+  if (left < 8) left = 8;
+  // Flip above if too far down
+  if (top + ph > vh - 8) top = rect.top - ph - 8;
+
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
+}
+function closeCatPopover() {
+  document.getElementById('catPopover').classList.add('hidden');
+  popoverOpen = false;
+}
+document.getElementById('catPopoverX').addEventListener('click', closeCatPopover);
+document.addEventListener('click', e => {
+  if (!popoverOpen) return;
+  const pop = document.getElementById('catPopover');
+  if (!pop.contains(e.target) && !e.target.closest('.cat-header')) closeCatPopover();
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function makeMiniGrid(cells) {
+  const wrap = document.createElement('div');
+  wrap.className = 'mini-grid';
+  const flat = cells.length === 9 ? cells : Array(9).fill({ status: 'empty' });
+  flat.forEach(c => {
+    const sq = document.createElement('div');
+    sq.className = 'mg-cell' + (c.status === 'correct' ? ' solved' : '');
+    wrap.appendChild(sq);
+  });
+  return wrap;
+}
+
+// ── Archive modal ─────────────────────────────────────────────────────────────
+function openArchiveModal() {
+  const body = document.getElementById('archiveBody');
+  const dates = archiveDates();
+  const today = todayISO();
+  body.innerHTML = '';
+
+  // Render all 50 dates in strict chronological order (oldest → today → newest)
+  dates.forEach(d => {
+    const saved  = loadSavedState(d);
+    const isTod  = d === today;
+    const isPast = d < today;
+    const isFuture = d > today;
+    const num    = puzzleNumber(d);
+
+    // Compute result stats from saved state
+    const cells = saved?.cells?.flat() ?? [];
+    const solvedCount = cells.filter(c => c.status === 'correct').length;
+    const hasProgress = saved && (solvedCount > 0 || saved.guesses_left < 9);
+    const isOver = saved && (saved.guesses_left <= 0 || solvedCount === 9);
+    const allSolved = solvedCount === 9;
+
+    const entry = document.createElement('div');
+    entry.className = 'archive-entry' +
+      (isTod ? ' is-today' : '') +
+      (d === currentDate ? ' is-active' : '');
+
+    // Date label
+    const dateLbl = document.createElement('div');
+    dateLbl.className = 'archive-entry-date';
+    dateLbl.textContent = formatDateShort(d);
+
+    // Puzzle number
+    const numLbl = document.createElement('div');
+    numLbl.className = 'archive-entry-num';
+    numLbl.textContent = `#${num}`;
+
+    // Right-side status area
+    const status = document.createElement('div');
+    status.className = 'archive-entry-status';
+
+    if (d === currentDate) {
+      // Currently open puzzle
+      if (hasProgress) {
+        const mg = makeMiniGrid(cells);
+        status.appendChild(mg);
+        const sc = document.createElement('span');
+        sc.className = 'archive-stat';
+        sc.textContent = `${saved.total_score} pts`;
+        status.appendChild(sc);
+      }
+      const b = document.createElement('span');
+      b.className = 'archive-badge badge-current'; b.textContent = 'Current';
+      status.appendChild(b);
+
+    } else if (hasProgress) {
+      // Any game with recorded progress (past or today)
+      const mg = makeMiniGrid(cells);
+      status.appendChild(mg);
+
+      const sc = document.createElement('span');
+      sc.className = 'archive-stat' + (allSolved ? ' hi' : '');
+      sc.textContent = `${saved.total_score} pts`;
+      status.appendChild(sc);
+
+      if (allSolved) {
+        const b = document.createElement('span');
+        b.className = 'archive-badge badge-solved'; b.textContent = '✓';
+        status.appendChild(b);
+      } else if (isOver) {
+        const b = document.createElement('span');
+        b.className = 'archive-badge'; b.style.cssText = 'background:#f3f4f6;color:#6b7280';
+        b.textContent = `${solvedCount}/9`;
+        status.appendChild(b);
+      } else {
+        const b = document.createElement('span');
+        b.className = 'archive-badge'; b.style.cssText = 'background:#fef9c3;color:#713f12';
+        b.textContent = `${solvedCount}/9 ▶`;
+        status.appendChild(b);
+      }
+
+    } else if (isTod) {
+      const b = document.createElement('span');
+      b.className = 'archive-badge badge-today'; b.textContent = 'Today';
+      status.appendChild(b);
+
+    } else if (isFuture) {
+      const b = document.createElement('span');
+      b.className = 'archive-badge badge-upcoming'; b.textContent = 'Upcoming';
+      status.appendChild(b);
+    }
+    // Past, not played: no badge (clean)
+
+    entry.appendChild(dateLbl);
+    entry.appendChild(numLbl);
+    entry.appendChild(status);
+    entry.addEventListener('click', () => { closeArchiveModal(); loadDate(d); });
+    body.appendChild(entry);
+  });
+
+  // Scroll to today
+  document.getElementById('archiveOverlay').classList.remove('hidden');
+  requestAnimationFrame(() => {
+    const todayEl = body.querySelector('.is-today');
+    if (todayEl) todayEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+}
+function closeArchiveModal() {
+  document.getElementById('archiveOverlay').classList.add('hidden');
+}
+document.getElementById('btnArchive').addEventListener('click', openArchiveModal);
+document.getElementById('archiveX').addEventListener('click', closeArchiveModal);
+document.getElementById('endArchive').addEventListener('click', () => {
+  closeEndModal();
+  openArchiveModal();
+});
+document.getElementById('archiveOverlay').addEventListener('mousedown', e => {
+  if (e.target === document.getElementById('archiveOverlay')) closeArchiveModal();
+});
+
+// ── Autocomplete ──────────────────────────────────────────────────────────────
+function normAc(s) { return (s || '').toLowerCase().trim(); }
+function acSuggest(query) {
+  const q = normAc(query);
+  if (!q) return [];
+  const used = new Set(
+    (gameState?.cells || []).flatMap(row => row.filter(c => c.status === 'correct').map(c => c.answer))
+  );
+  const matches = allLangs
+    .filter(l => !used.has(l) && normAc(l).includes(q))
+    .map(l => ({ l, score: normAc(l).startsWith(q) ? 0 : 1 }));
+  matches.sort((a, b) => a.score - b.score || a.l.localeCompare(b.l));
+  return matches.slice(0, 10).map(x => x.l);
+}
+function renderAc(items) {
+  const el = document.getElementById('autocomplete');
+  acItems = items; acIndex = items.length ? 0 : -1;
+  if (!items.length) { el.classList.remove('open'); el.innerHTML = ''; return; }
+  el.innerHTML = items.map((item, i) =>
+    `<div class="ac-item${i === acIndex ? ' active' : ''}" data-i="${i}">${item}</div>`
+  ).join('');
+  el.classList.add('open');
+  el.querySelectorAll('.ac-item').forEach(node => {
+    node.addEventListener('mousedown', e => { e.preventDefault(); selectLang(items[parseInt(node.dataset.i)]); });
+    node.addEventListener('mouseenter', () => { acIndex = parseInt(node.dataset.i); syncAcActive(); });
+  });
+}
+function syncAcActive() {
+  document.querySelectorAll('#autocomplete .ac-item').forEach((n, i) =>
+    n.classList.toggle('active', i === acIndex));
+}
+function closeAc() {
+  document.getElementById('autocomplete').classList.remove('open');
+  acItems = []; acIndex = -1;
+}
+function selectLang(lang) {
+  document.getElementById('searchInput').value = lang;
+  closeAc();
+  document.getElementById('modalSubmit').disabled = false;
+  document.getElementById('modalFeedback').classList.remove('show');
+}
+
+// ── Guess modal ───────────────────────────────────────────────────────────────
+function openGuessModal(row, col) {
+  if (!puzzle || !gameState) return;
+  if (gameState.cells[row][col].status === 'correct') return;
+  if (gameState.guesses_left <= 0) return;
+
+  activeCell = { row, col };
+  const diff = puzzle.cells[row][col];
+  document.getElementById('mRowCat').textContent = puzzle.rows[row];
+  document.getElementById('mColCat').textContent = puzzle.cols[col];
+
+  const dc = DIFFICULTY_COLORS[diff.difficulty] || DIFFICULTY_COLORS.white;
+  document.getElementById('mDiff').innerHTML =
+    `<span class="diff-dot" style="background:${dc.dot}"></span>${diff.valid_count} possible answer${diff.valid_count !== 1 ? 's' : ''}`;
+
+  const inp = document.getElementById('searchInput');
+  inp.value = '';
+  closeAc();
+  document.getElementById('modalSubmit').disabled = true;
+  document.getElementById('modalFeedback').classList.remove('show');
+  document.getElementById('guessOverlay').classList.remove('hidden');
+  setTimeout(() => inp.focus(), 60);
+}
+function closeGuessModal() {
+  document.getElementById('guessOverlay').classList.add('hidden');
+  activeCell = null; closeAc();
+}
+
+// ── Submit ─────────────────────────────────────────────────────────────────────
+async function handleSubmit() {
+  if (!activeCell || gameState.guesses_left <= 0) return;
+  const lang = document.getElementById('searchInput').value.trim();
+  if (!lang) return;
+
+  const btn = document.getElementById('modalSubmit');
+  btn.disabled = true; btn.textContent = 'Checking…';
+
+  let result;
+  try { result = await submitGuess(activeCell.row, activeCell.col, lang); }
+  catch { btn.disabled = false; btn.textContent = 'Submit'; return; }
+
+  const { row, col } = activeCell;
+  const fb = document.getElementById('modalFeedback');
+  gameState.guesses_left--;
+
+  if (result.valid) {
+    gameState.cells[row][col] = {
+      status: 'correct', answer: result.canonical_name,
+      score: result.score, wrong_count: gameState.cells[row][col].wrong_count,
+    };
+    gameState.total_score += result.score;
+    fb.textContent = `✓ Correct! +${result.score} pts  (${result.valid_count} possible answers)`;
+    fb.className = 'modal-feedback show correct';
+    saveState(); renderGrid(); renderGuessBar();
+    setTimeout(() => { closeGuessModal(); if (isGameOver()) showEndModal(); }, 900);
+  } else {
+    gameState.cells[row][col].wrong_count = (gameState.cells[row][col].wrong_count || 0) + 1;
+    fb.textContent = `✗ "${lang}" doesn't fit here. ${gameState.guesses_left} guess${gameState.guesses_left !== 1 ? 'es' : ''} left.`;
+    fb.className = 'modal-feedback show wrong';
+    saveState(); renderGrid(); renderGuessBar();
+    btn.textContent = 'Submit';
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchInput').focus();
+    if (gameState.guesses_left <= 0) setTimeout(() => { closeGuessModal(); showEndModal(); }, 700);
+    else btn.disabled = false;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderGrid() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  // Guess bar placeholder
+  const bar = document.createElement('div');
+  bar.className = 'guesses-bar'; bar.id = 'guessBar';
+  main.appendChild(bar);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'grid-wrap';
+  main.appendChild(wrap);
+
+  // Corner
+  wrap.appendChild(document.createElement('div'));
+
+  // Column headers
+  puzzle.cols.forEach((cat, c) => {
+    const h = document.createElement('div');
+    h.className = 'cat-header col-cat';
+    h.innerHTML = `<span>${cat}</span><span class="cat-info-icon">?</span>`;
+    h.title = 'Click to learn about this category';
+    h.addEventListener('click', () => showCatPopover(h, cat));
+    wrap.appendChild(h);
+  });
+
+  // Rows
+  puzzle.rows.forEach((rowCat, r) => {
+    const rh = document.createElement('div');
+    rh.className = 'cat-header row-cat';
+    rh.innerHTML = `<span class="cat-info-icon">?</span><span>${rowCat}</span>`;
+    rh.title = 'Click to learn about this category';
+    rh.addEventListener('click', () => showCatPopover(rh, rowCat));
+    wrap.appendChild(rh);
+
+    puzzle.cols.forEach((_, c) => {
+      const cs   = gameState.cells[r][c];
+      const diff = puzzle.cells[r][c];
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (cs.status === 'correct' ? ' cell--correct' : '');
+
+      const dc = DIFFICULTY_COLORS[diff.difficulty] || DIFFICULTY_COLORS.white;
+      const badge = document.createElement('span');
+      badge.className = 'cell-badge';
+      badge.style.background = dc.dot;
+      cell.appendChild(badge);
+
+      if (cs.status === 'correct') {
+        const langEl = document.createElement('div');
+        langEl.className = 'cell-lang'; langEl.textContent = cs.answer;
+        const scoreEl = document.createElement('div');
+        scoreEl.className = 'cell-score'; scoreEl.textContent = `+${cs.score} pts`;
+        cell.appendChild(langEl); cell.appendChild(scoreEl);
+      } else {
+        const prompt = document.createElement('div');
+        prompt.className = 'cell-prompt'; prompt.textContent = '?';
+        cell.appendChild(prompt);
+        if (cs.wrong_count > 0) {
+          const dots = document.createElement('div');
+          dots.className = 'cell-wrong-dots';
+          for (let i = 0; i < cs.wrong_count; i++) {
+            const d = document.createElement('span');
+            d.className = 'cell-wrong-dot';
+            dots.appendChild(d);
+          }
+          cell.appendChild(dots);
+        }
+        if (gameState.guesses_left > 0) {
+          cell.addEventListener('click', () => openGuessModal(r, c));
+        } else {
+          cell.classList.add('cell--done');
+        }
+      }
+      wrap.appendChild(cell);
+    });
+  });
+
+  // Score row
+  const sr = document.createElement('div');
+  sr.className = 'score-row';
+  sr.innerHTML = `Score: <span class="score-val">${gameState.total_score}</span>&nbsp;/ 900 pts`;
+  main.appendChild(sr);
+
+  // Legend
+  const leg = document.createElement('div');
+  leg.className = 'legend';
+  [['white','5+ answers'],['green','3–7 answers'],['yellow','2–3 answers'],['orange','1 answer']].forEach(([key, label]) => {
+    const dc = DIFFICULTY_COLORS[key];
+    leg.innerHTML += `<span class="legend-item"><span class="legend-dot" style="background:${dc.dot}"></span>${label}</span>`;
+  });
+  main.appendChild(leg);
+
+  document.getElementById('headerScore').textContent = `${gameState.total_score} pts`;
+  renderGuessBar();
+}
+
+function renderGuessBar() {
+  const bar = document.getElementById('guessBar');
+  if (!bar) return;
+  const correct = gameState.cells.flat().filter(c => c.status === 'correct').length;
+  const used    = MAX_GUESSES - gameState.guesses_left;
+  bar.innerHTML = `
+    <span>${gameState.guesses_left} guess${gameState.guesses_left !== 1 ? 'es' : ''} left</span>
+    <div class="guess-dots">
+      ${Array.from({ length: MAX_GUESSES }, (_, i) => {
+        const cls = i < correct ? 'correct' : i < used ? 'used' : '';
+        return `<span class="guess-dot ${cls}"></span>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ── End modal ─────────────────────────────────────────────────────────────────
+function showEndModal() {
+  const allCorrect = gameState.cells.flat().every(c => c.status === 'correct');
+  document.getElementById('endTitle').textContent = allCorrect ? '🎉 Puzzle complete!' : 'Game over';
+  document.getElementById('endScore').textContent = gameState.total_score;
+  document.getElementById('endMax').textContent = 'out of 900 pts';
+  document.getElementById('endGrid').innerHTML = gameState.cells.flat().map(c =>
+    `<div class="end-cell ${c.status === 'correct' ? 'c' : 'e'}">${c.status === 'correct' ? '✓' : '·'}</div>`
+  ).join('');
+  document.getElementById('endOverlay').classList.remove('hidden');
+  const scoreEl = document.getElementById('headerScore');
+  scoreEl.classList.add('clickable');
+  scoreEl.title = 'Click to see results';
+}
+function closeEndModal() { document.getElementById('endOverlay').classList.add('hidden'); }
+
+document.getElementById('headerScore').addEventListener('click', () => {
+  if (document.getElementById('headerScore').classList.contains('clickable')) showEndModal();
+});
+
+document.getElementById('endClose').addEventListener('click', closeEndModal);
+document.getElementById('endOverlay').addEventListener('mousedown', e => {
+  if (e.target === document.getElementById('endOverlay')) closeEndModal();
+});
+document.getElementById('endShare').addEventListener('click', () => {
+  const num = puzzleNumber(currentDate);
+  const lines = [`LingoGrid #${num} — ${formatDate(currentDate)}`, ''];
+  gameState.cells.forEach(row => {
+    lines.push(row.map(c => c.status === 'correct' ? '🟩' : '⬜').join(''));
+  });
+  lines.push(`Score: ${gameState.total_score}/900`);
+  lines.push('langenjoyer.world/lingogrid');
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    document.getElementById('endShare').textContent = 'Copied!';
+    setTimeout(() => document.getElementById('endShare').textContent = 'Copy result', 2000);
+  });
+});
+
+// ── Input wiring ──────────────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('input', e => {
+  renderAc(acSuggest(e.target.value));
+  document.getElementById('modalSubmit').disabled = !e.target.value.trim();
+});
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  const open = document.getElementById('autocomplete').classList.contains('open');
+  if (e.key === 'ArrowDown') { e.preventDefault(); acIndex = Math.min(acIndex + 1, acItems.length - 1); syncAcActive(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); acIndex = Math.max(acIndex - 1, 0); syncAcActive(); }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (open && acIndex >= 0 && acItems[acIndex]) selectLang(acItems[acIndex]);
+    else handleSubmit();
+  } else if (e.key === 'Escape') closeGuessModal();
+});
+document.getElementById('modalSubmit').addEventListener('click', handleSubmit);
+document.getElementById('modalX').addEventListener('click', closeGuessModal);
+document.getElementById('guessOverlay').addEventListener('mousedown', e => {
+  if (e.target === document.getElementById('guessOverlay')) closeGuessModal();
+});
+document.addEventListener('click', e => {
+  if (!document.getElementById('autocomplete').contains(e.target) &&
+      e.target !== document.getElementById('searchInput')) closeAc();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (!document.getElementById('guessOverlay').classList.contains('hidden')) closeGuessModal();
+    else if (!document.getElementById('archiveOverlay').classList.contains('hidden')) closeArchiveModal();
+    else if (!document.getElementById('endOverlay').classList.contains('hidden')) closeEndModal();
+    else if (popoverOpen) closeCatPopover();
+  }
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const dateParam = params.get('date');
+  const startDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : todayISO();
+  await loadDate(startDate);
+})();
+</script>
+</body>
+</html>
