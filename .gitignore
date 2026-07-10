@@ -26,3 +26,8 @@ Thumbs.db
 
 # Claude Code
 .claude/
+
+# Game/answer data — kept out of the public repo, served from a Railway
+# Volume in production (see GEOLINGO_DATA_DIR) and loaded from here locally.
+data/world_data.json
+data/lingogrid_languages.json

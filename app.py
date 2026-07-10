@@ -1,5 +1,7 @@
 import hashlib
+import hmac
 import json
+import os
 import random
 import re
 from contextlib import asynccontextmanager
@@ -7,7 +9,7 @@ from datetime import date as date_cls
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.requests import Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,7 +17,17 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 BASE_DIR = Path(__file__).parent
-DATA_PATH = BASE_DIR / "data" / "world_data.json"
+
+# In production (Railway) this points at a mounted Volume so the actual
+# game/answer data never has to live in the (public) git repo. Falls back to
+# the bundled data/ dir for local development.
+DATA_DIR = Path(os.environ.get("GEOLINGO_DATA_DIR", BASE_DIR / "data"))
+DATA_PATH = DATA_DIR / "world_data.json"
+LINGOGRID_DATA_PATH = DATA_DIR / "lingogrid_languages.json"
+
+# Shared secret required to push/update data at runtime via /admin/data.
+# Admin endpoints are disabled (always 403) if this is not set.
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN")
 
 _APOSTROPHE_RE = re.compile(r"[''`]")
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -82,7 +94,6 @@ KNOWN_LANGUAGES: List[str] = []
 
 # ── LingoGrid data ─────────────────────────────────────────────────────────────
 
-LINGOGRID_DATA_PATH = BASE_DIR / "data" / "lingogrid_languages.json"
 LINGOGRID_LANGUAGES: List[Dict[str, Any]] = []
 
 LINGOGRID_CATEGORIES: Dict[str, Any] = {
@@ -205,16 +216,46 @@ def _get_daily_puzzle(target: date_cls) -> Tuple[List[str], List[str]]:
     )
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global COUNTRIES, LANG_TO_ISO3, KNOWN_LANGUAGES, LINGOGRID_LANGUAGES
+def _reload_world_data() -> None:
+    global COUNTRIES, LANG_TO_ISO3, KNOWN_LANGUAGES
     data = _load_world_data()
     COUNTRIES = data["countries_by_iso_a3"]
     LANG_TO_ISO3 = _build_lang_index(COUNTRIES)
     KNOWN_LANGUAGES = _collect_known_languages(COUNTRIES)
-    if LINGOGRID_DATA_PATH.exists():
-        with open(LINGOGRID_DATA_PATH, "r", encoding="utf-8") as f:
-            LINGOGRID_LANGUAGES = json.load(f)["languages"]
+
+
+def _reload_lingogrid_data() -> None:
+    global LINGOGRID_LANGUAGES
+    if not LINGOGRID_DATA_PATH.exists():
+        raise FileNotFoundError(f"Missing {LINGOGRID_DATA_PATH}")
+    with open(LINGOGRID_DATA_PATH, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    if "languages" not in payload:
+        raise ValueError("lingogrid_languages.json has unexpected schema (missing 'languages').")
+    LINGOGRID_LANGUAGES = payload["languages"]
+
+
+# name -> (file path, reload function, required top-level key in uploaded payload)
+_ADMIN_DATASETS = {
+    "world_data": (DATA_PATH, _reload_world_data, "countries_by_iso_a3"),
+    "lingogrid_languages": (LINGOGRID_DATA_PATH, _reload_lingogrid_data, "languages"),
+}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Tolerate a freshly mounted, still-empty volume (e.g. right after the
+    # first deploy, before the data has been seeded via /admin/data).
+    # Otherwise the app would crash-loop with no way to reach the seeding
+    # endpoint.
+    try:
+        _reload_world_data()
+    except FileNotFoundError:
+        pass
+    try:
+        _reload_lingogrid_data()
+    except FileNotFoundError:
+        pass
     yield
 
 
@@ -362,6 +403,47 @@ def lingogrid_guess(payload: GuessRequest):
 @app.get("/api/country_info")
 def country_info():
     return {"countries_by_iso_a3": COUNTRIES}
+
+
+def _require_admin(x_admin_token: Optional[str] = Header(default=None)) -> None:
+    if not ADMIN_TOKEN or not x_admin_token or not hmac.compare_digest(x_admin_token, ADMIN_TOKEN):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+@app.post("/admin/data/{name}", dependencies=[Depends(_require_admin)], include_in_schema=False)
+async def upload_data(name: str, request: Request):
+    if name not in _ADMIN_DATASETS:
+        raise HTTPException(status_code=404, detail="Unknown dataset")
+    path, reload_fn, required_key = _ADMIN_DATASETS[name]
+
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    if not isinstance(payload, dict) or required_key not in payload:
+        raise HTTPException(status_code=400, detail=f"Payload must be a JSON object with a '{required_key}' key")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(".tmp")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False)
+    os.replace(tmp_path, path)
+
+    try:
+        reload_fn()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Data written but reload failed: {e}")
+
+    return {"status": "ok", "dataset": name}
+
+
+@app.get("/admin/data/status", dependencies=[Depends(_require_admin)], include_in_schema=False)
+def data_status():
+    return {
+        "data_dir": str(DATA_DIR),
+        "countries_loaded": len(COUNTRIES),
+        "lingogrid_languages_loaded": len(LINGOGRID_LANGUAGES),
+    }
 
 
 @app.post("/api/coverage")
