@@ -31,10 +31,6 @@
         content="Explore official languages across countries with population and speaker estimates.">
   <meta name="twitter:image" content="https://gekkolingo.online/static/og-image.png">
 
-  <!-- Google Search Console -->
-  <meta name="google-site-verification"
-        content="wMGemAg-HqFtJC-HQiWwMz6E2sjLN6YCnuGKTlkiA0E" />
-
   <!-- Favicons (IMPORTANT for Google) -->
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -786,7 +782,7 @@
 
     suggestEl.innerHTML = items.map((x, i) => `
       <div class="suggest-item ${i === activeSuggestIndex ? 'active' : ''}" data-i="${i}">
-        <div>${x}</div>
+        <div>${escHtml(x)}</div>
         <div class="hint">Enter / click</div>
       </div>
     `).join("");
@@ -909,7 +905,7 @@
       <div><strong>Total population:</strong> ${fmtInt(data.covered_population || 0)}</div>
       <div><strong>Speakers (official language):</strong> ${fmtInt(data.covered_speakers_in_countries || 0)}</div>
       ${data.unknown_languages?.length
-        ? `<div class="warn" style="margin-top:8px;">Unknown languages: ${data.unknown_languages.join(', ')}</div>`
+        ? `<div class="warn" style="margin-top:8px;">Unknown languages: ${data.unknown_languages.map(escHtml).join(', ')}</div>`
         : ``}
     `;
   }

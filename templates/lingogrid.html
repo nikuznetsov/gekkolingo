@@ -509,6 +509,12 @@
 </div>
 
 <script>
+const _esc = document.createElement('div');
+function escHtml(s) {
+  _esc.textContent = String(s ?? '');
+  return _esc.innerHTML;
+}
+
 // ── Category descriptions ────────────────────────────────────────────────────
 const CATEGORY_DESCRIPTIONS = {
   "Written in Latin script":
@@ -880,7 +886,7 @@ function renderAc(items) {
   acItems = items; acIndex = items.length ? 0 : -1;
   if (!items.length) { el.classList.remove('open'); el.innerHTML = ''; return; }
   el.innerHTML = items.map((item, i) =>
-    `<div class="ac-item${i === acIndex ? ' active' : ''}" data-i="${i}">${item}</div>`
+    `<div class="ac-item${i === acIndex ? ' active' : ''}" data-i="${i}">${escHtml(item)}</div>`
   ).join('');
   el.classList.add('open');
   el.querySelectorAll('.ac-item').forEach(node => {

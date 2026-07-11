@@ -403,6 +403,12 @@
 </div>
 
 <script>
+const _esc = document.createElement('div');
+function escHtml(s) {
+  _esc.textContent = String(s ?? '');
+  return _esc.innerHTML;
+}
+
 // ── State ────────────────────────────────────────────────────────────────────
 const MAX_ROUNDS = 5;
 let puzzle    = null; // {date, rounds:[{text, options}], language_names}
@@ -530,7 +536,7 @@ function renderAc(items) {
   acItems = items; acIndex = items.length ? 0 : -1;
   if (!items.length) { el.classList.remove('open'); el.innerHTML = ''; return; }
   el.innerHTML = items.map((item, i) =>
-    `<div class="ac-item${i === acIndex ? ' active' : ''}" data-i="${i}">${item}</div>`
+    `<div class="ac-item${i === acIndex ? ' active' : ''}" data-i="${i}">${escHtml(item)}</div>`
   ).join('');
   el.classList.add('open');
   el.querySelectorAll('.ac-item').forEach(node => {
@@ -592,7 +598,10 @@ function renderQuestionView(idx) {
 
   const card = document.createElement('div');
   card.className = 'text-card';
-  card.innerHTML = `<div class="text-quote">“${round.text}”</div>`;
+  const quote = document.createElement('div');
+  quote.className = 'text-quote';
+  quote.textContent = `“${round.text}”`;
+  card.appendChild(quote);
   main.appendChild(card);
 
   if (gameState.hard_mode) {
@@ -656,7 +665,10 @@ function renderFeedbackView(idx) {
 
   const card = document.createElement('div');
   card.className = 'text-card';
-  card.innerHTML = `<div class="text-quote">“${round.text}”</div>`;
+  const quote = document.createElement('div');
+  quote.className = 'text-quote';
+  quote.textContent = `“${round.text}”`;
+  card.appendChild(quote);
   main.appendChild(card);
 
   if (!gameState.hard_mode) {
@@ -676,7 +688,7 @@ function renderFeedbackView(idx) {
   wrap.className = 'feedback-card';
   const banner = document.createElement('div');
   banner.className = 'feedback-banner ' + (r.correct ? 'correct' : 'wrong');
-  banner.innerHTML = r.correct
+  banner.textContent = r.correct
     ? `✓ Correct! It was ${r.correct_language}. +${r.score} pts`
     : `✗ You guessed "${r.chosen}" — it was actually ${r.correct_language}.`;
   wrap.appendChild(banner);
