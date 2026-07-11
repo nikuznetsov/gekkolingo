@@ -6,6 +6,7 @@ import random
 import re
 from contextlib import asynccontextmanager
 from datetime import date as date_cls
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -91,7 +92,8 @@ def _file_response(filename: str, media_type: str) -> FileResponse:
 def _load_world_data() -> Dict[str, Any]:
     if not DATA_PATH.exists():
         raise FileNotFoundError(
-            f"Missing {DATA_PATH}. Run: python scripts/generate_world_data.py"
+            f"Missing {DATA_PATH}. Seed it via POST /admin/data/world_data "
+            f"(see CLAUDE.md) or place a world_data.json file at that path."
         )
     with open(DATA_PATH, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -200,6 +202,7 @@ def _cell_score(chosen_name: str, valid: List[Dict]) -> int:
     return 0
 
 
+@lru_cache(maxsize=256)
 def _get_daily_puzzle(target: date_cls) -> Tuple[List[str], List[str]]:
     seed = int(hashlib.md5(target.isoformat().encode()).hexdigest(), 16) % (2 ** 32)
     rng = random.Random(seed)
@@ -254,6 +257,7 @@ LINGOGUESS_TEXTS_BY_LANG: Dict[str, List[str]] = {}
 _LINGOGUESS_TEXT_EPOCH = date_cls(2026, 3, 25)
 
 
+@lru_cache(maxsize=256)
 def _lingoguess_daily_rounds(target: date_cls) -> List[Dict[str, Any]]:
     """Returns LINGOGUESS_ROUNDS rounds of {text, language, options}. 'language'
     is the correct answer and must never be sent to the client directly —
@@ -285,69 +289,131 @@ def _lingoguess_daily_rounds(target: date_cls) -> List[Dict[str, Any]]:
     return rounds
 
 
-def _reload_world_data() -> None:
+# Fields read by LINGOGRID_CATEGORIES / _cell_score / _lingoguess_daily_rounds.
+# Validated on every admin upload so a malformed payload is rejected before
+# it ever reaches disk or the in-memory puzzle generator.
+_LINGOGRID_LANGUAGE_REQUIRED_FIELDS = (
+    "name", "native_m", "family", "subfamily", "scripts",
+    "continents", "countries", "tonal", "clicks", "un_official",
+)
+
+
+def _build_world_data(data: Dict[str, Any]) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Set[str]], List[str]]:
+    if "countries_by_iso_a3" not in data:
+        raise ValueError("world_data.json has unexpected schema (missing countries_by_iso_a3).")
+    countries = data["countries_by_iso_a3"]
+    if not isinstance(countries, dict):
+        raise ValueError("countries_by_iso_a3 must be an object keyed by ISO A3 code.")
+    lang_to_iso3 = _build_lang_index(countries)
+    known_languages = _collect_known_languages(countries)
+    return countries, lang_to_iso3, known_languages
+
+
+def _build_lingogrid_data(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if "languages" not in payload:
+        raise ValueError("lingogrid_languages.json has unexpected schema (missing 'languages').")
+    languages = payload["languages"]
+    if not isinstance(languages, list):
+        raise ValueError("'languages' must be a list.")
+    for entry in languages:
+        if not isinstance(entry, dict):
+            raise ValueError("each language entry must be an object.")
+        missing = [f for f in _LINGOGRID_LANGUAGE_REQUIRED_FIELDS if f not in entry]
+        if missing:
+            raise ValueError(f"language entry {entry.get('name', '?')!r} missing fields: {missing}")
+    return languages
+
+
+def _build_lingoguess_data(payload: Dict[str, Any]) -> Dict[str, List[str]]:
+    if "texts" not in payload:
+        raise ValueError("lingoguess_texts.json has unexpected schema (missing 'texts').")
+    texts = payload["texts"]
+    if not isinstance(texts, list):
+        raise ValueError("'texts' must be a list.")
+    by_lang: Dict[str, List[str]] = {}
+    for item in texts:
+        if not isinstance(item, dict) or "language" not in item or "text" not in item:
+            raise ValueError("each text entry must be an object with 'language' and 'text'.")
+        by_lang.setdefault(item["language"], []).append(item["text"])
+    # Deterministic per-language shuffle so the daily rotation in
+    # _lingoguess_daily_rounds doesn't just replay the source-file order.
+    for lang, texts_for_lang in by_lang.items():
+        random.Random(f"lingoguess-order-{lang}").shuffle(texts_for_lang)
+    return by_lang
+
+
+def _assign_world_data(built: Tuple[Dict[str, Dict[str, Any]], Dict[str, Set[str]], List[str]]) -> None:
     global COUNTRIES, LANG_TO_ISO3, KNOWN_LANGUAGES
-    data = _load_world_data()
-    COUNTRIES = data["countries_by_iso_a3"]
-    LANG_TO_ISO3 = _build_lang_index(COUNTRIES)
-    KNOWN_LANGUAGES = _collect_known_languages(COUNTRIES)
+    COUNTRIES, LANG_TO_ISO3, KNOWN_LANGUAGES = built
+
+
+def _assign_lingogrid_data(built: List[Dict[str, Any]]) -> None:
+    global LINGOGRID_LANGUAGES
+    LINGOGRID_LANGUAGES = built
+    # Both caches derive puzzles from LINGOGRID_LANGUAGES — stale entries
+    # would otherwise keep serving pre-reload puzzles/rounds.
+    _get_daily_puzzle.cache_clear()
+    _lingoguess_daily_rounds.cache_clear()
+
+
+def _assign_lingoguess_data(built: Dict[str, List[str]]) -> None:
+    global LINGOGUESS_TEXTS_BY_LANG
+    LINGOGUESS_TEXTS_BY_LANG = built
+    _lingoguess_daily_rounds.cache_clear()
+
+
+def _reload_world_data() -> None:
+    _assign_world_data(_build_world_data(_load_world_data()))
 
 
 def _reload_lingogrid_data() -> None:
-    global LINGOGRID_LANGUAGES
     if not LINGOGRID_DATA_PATH.exists():
         raise FileNotFoundError(f"Missing {LINGOGRID_DATA_PATH}")
     with open(LINGOGRID_DATA_PATH, "r", encoding="utf-8") as f:
         payload = json.load(f)
-    if "languages" not in payload:
-        raise ValueError("lingogrid_languages.json has unexpected schema (missing 'languages').")
-    LINGOGRID_LANGUAGES = payload["languages"]
+    _assign_lingogrid_data(_build_lingogrid_data(payload))
 
 
 def _reload_lingoguess_data() -> None:
-    global LINGOGUESS_TEXTS_BY_LANG
     if not LINGOGUESS_DATA_PATH.exists():
         raise FileNotFoundError(f"Missing {LINGOGUESS_DATA_PATH}")
     with open(LINGOGUESS_DATA_PATH, "r", encoding="utf-8") as f:
         payload = json.load(f)
-    if "texts" not in payload:
-        raise ValueError("lingoguess_texts.json has unexpected schema (missing 'texts').")
-    by_lang: Dict[str, List[str]] = {}
-    for item in payload["texts"]:
-        by_lang.setdefault(item["language"], []).append(item["text"])
-    # Deterministic per-language shuffle so the daily rotation in
-    # _lingoguess_daily_rounds doesn't just replay the source-file order.
-    for lang, texts in by_lang.items():
-        random.Random(f"lingoguess-order-{lang}").shuffle(texts)
-    LINGOGUESS_TEXTS_BY_LANG = by_lang
+    _assign_lingoguess_data(_build_lingoguess_data(payload))
 
 
-# name -> (file path, reload function, required top-level key in uploaded payload)
+# name -> (file path, build function, assign function, required top-level key in uploaded payload)
 _ADMIN_DATASETS = {
-    "world_data": (DATA_PATH, _reload_world_data, "countries_by_iso_a3"),
-    "lingogrid_languages": (LINGOGRID_DATA_PATH, _reload_lingogrid_data, "languages"),
-    "lingoguess_texts": (LINGOGUESS_DATA_PATH, _reload_lingoguess_data, "texts"),
+    "world_data": (DATA_PATH, _build_world_data, _assign_world_data, "countries_by_iso_a3"),
+    "lingogrid_languages": (LINGOGRID_DATA_PATH, _build_lingogrid_data, _assign_lingogrid_data, "languages"),
+    "lingoguess_texts": (LINGOGUESS_DATA_PATH, _build_lingoguess_data, _assign_lingoguess_data, "texts"),
 }
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Tolerate a freshly mounted, still-empty volume (e.g. right after the
-    # first deploy, before the data has been seeded via /admin/data).
-    # Otherwise the app would crash-loop with no way to reach the seeding
-    # endpoint.
+    # first deploy, before the data has been seeded via /admin/data), and
+    # tolerate a present-but-corrupt file rather than crash-looping forever
+    # with no way to reach the seeding endpoint to fix it.
     try:
         _reload_world_data()
     except FileNotFoundError:
         pass
+    except Exception as e:
+        print(f"[startup] failed to load world_data: {e}")
     try:
         _reload_lingogrid_data()
     except FileNotFoundError:
         pass
+    except Exception as e:
+        print(f"[startup] failed to load lingogrid_languages: {e}")
     try:
         _reload_lingoguess_data()
     except FileNotFoundError:
         pass
+    except Exception as e:
+        print(f"[startup] failed to load lingoguess_texts: {e}")
     yield
 
 
@@ -552,7 +618,7 @@ def _require_admin(x_admin_token: Optional[str] = Header(default=None)) -> None:
 async def upload_data(name: str, request: Request):
     if name not in _ADMIN_DATASETS:
         raise HTTPException(status_code=404, detail="Unknown dataset")
-    path, reload_fn, required_key = _ADMIN_DATASETS[name]
+    path, build_fn, assign_fn, required_key = _ADMIN_DATASETS[name]
 
     try:
         payload = await request.json()
@@ -561,16 +627,22 @@ async def upload_data(name: str, request: Request):
     if not isinstance(payload, dict) or required_key not in payload:
         raise HTTPException(status_code=400, detail=f"Payload must be a JSON object with a '{required_key}' key")
 
+    # Validate (and build the in-memory representation) *before* touching
+    # disk, so a malformed upload never overwrites the last-known-good file
+    # — a corrupt file on disk would otherwise crash-loop the app on the
+    # next restart, since only a missing file is tolerated at startup.
+    try:
+        built = build_fn(payload)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid data: {e}")
+
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(".tmp")
     with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False)
     os.replace(tmp_path, path)
 
-    try:
-        reload_fn()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Data written but reload failed: {e}")
+    assign_fn(built)
 
     return {"status": "ok", "dataset": name}
 
@@ -608,8 +680,9 @@ def coverage(payload: CoverageRequest):
     covered_speakers = 0
     for iso3 in covered_iso3:
         speakers_by_language = COUNTRIES.get(iso3, {}).get("speakers_by_language") or {}
-        for raw in langs:
-            covered_speakers += _safe_int(speakers_by_language.get(raw, 0))
+        speakers_by_norm = {norm_text(k): v for k, v in speakers_by_language.items()}
+        for ln in lang_norms:
+            covered_speakers += _safe_int(speakers_by_norm.get(ln, 0))
 
     return {
         "input_languages": langs,
