@@ -139,16 +139,27 @@ LINGOGRID_CATEGORIES: Dict[str, Any] = {
     "Has click consonants":           lambda l: l["clicks"],
     "Uralic language":                lambda l: l["family"] == "Uralic",
     "Iranian language":               lambda l: l["subfamily"] == "Iranian",
+    "Indo-Aryan language":            lambda l: l["subfamily"] == "Indo-Aryan",
+    "Bantu language":                 lambda l: l["subfamily"] == "Bantu",
+    "Oghuz language":                 lambda l: l["subfamily"] == "Oghuz",
+    "Austroasiatic family":           lambda l: l["family"] == "Austroasiatic",
+    "Tai-Kadai family":               lambda l: l["family"] == "Tai-Kadai",
+    "Written in Geez script":         lambda l: "Geez" in l["scripts"],
+    "Official language in Oceania":   lambda l: "Oceania" in l["continents"],
+    "50M+ native speakers":           lambda l: l["native_m"] >= 50,
+    "Official in only 1 country":     lambda l: l["countries"] == 1,
 }
 
 # Categories that must not coexist in the same puzzle (subsets / siblings)
 _EXCL_GROUPS: List[Set[str]] = [
     {"Romance language", "Germanic language", "Slavic language", "Indo-European family",
-     "Semitic language", "Iranian language"},
-    {"100M+ native speakers", "10M–99M native speakers", "Under 10M native speakers"},
-    {"Official in 5+ countries", "Official in 3+ countries"},
+     "Semitic language", "Iranian language", "Indo-Aryan language"},
+    {"100M+ native speakers", "10M–99M native speakers", "Under 10M native speakers",
+     "50M+ native speakers"},
+    {"Official in 5+ countries", "Official in 3+ countries", "Official in only 1 country"},
     {"Afro-Asiatic family", "Semitic language"},
-    {"Niger-Congo family"},
+    {"Niger-Congo family", "Bantu language"},
+    {"Turkic language", "Oghuz language"},
 ]
 
 
@@ -194,7 +205,10 @@ def _get_daily_puzzle(target: date_cls) -> Tuple[List[str], List[str]]:
     rng = random.Random(seed)
     cat_keys = list(LINGOGRID_CATEGORIES.keys())
 
-    for _ in range(500):
+    # 3000 attempts: with 39 categories in the pool, the narrower ones (e.g.
+    # 2-language families) push the failure rate high enough at 500 attempts
+    # to hit the hardcoded fallback noticeably often — measured ~0% at 2000+.
+    for _ in range(3000):
         shuffled = cat_keys.copy()
         rng.shuffle(shuffled)
 
@@ -221,10 +235,12 @@ def _get_daily_puzzle(target: date_cls) -> Tuple[List[str], List[str]]:
         if all(_valid_langs(r, c) for r in rows for c in cols):
             return rows, cols
 
-    # Hardcoded safe fallback
+    # Hardcoded safe fallback (all 9 cells verified non-empty — the previous
+    # version paired "Tonal language" with "Romance language", which has zero
+    # overlap and produced an unplayable cell whenever this path was hit)
     return (
-        ["Official language in Europe", "100M+ native speakers", "Tonal language"],
-        ["Romance language", "Written in Cyrillic script", "Official language in Africa"],
+        ["Official language in Europe", "Official language in Asia", "Written in Latin script"],
+        ["Official language in Africa", "Official language in Americas", "100M+ native speakers"],
     )
 
 
@@ -232,6 +248,10 @@ def _get_daily_puzzle(target: date_cls) -> Tuple[List[str], List[str]]:
 
 LINGOGUESS_ROUNDS = 5
 LINGOGUESS_TEXTS_BY_LANG: Dict[str, List[str]] = {}
+
+# Reference date for the per-language text rotation below. Arbitrary — just
+# needs to be fixed so the same date always maps to the same text.
+_LINGOGUESS_TEXT_EPOCH = date_cls(2026, 3, 25)
 
 
 def _lingoguess_daily_rounds(target: date_cls) -> List[Dict[str, Any]]:
@@ -247,10 +267,16 @@ def _lingoguess_daily_rounds(target: date_cls) -> List[Dict[str, Any]]:
 
     chosen = rng.sample(eligible, k=min(LINGOGUESS_ROUNDS, len(eligible)))
     all_names = [l["name"] for l in LINGOGRID_LANGUAGES]
+    day_index = (target - _LINGOGUESS_TEXT_EPOCH).days
 
     rounds = []
     for lang in chosen:
-        text = rng.choice(LINGOGUESS_TEXTS_BY_LANG[lang["name"]])
+        # Cycle through this language's (pre-shuffled) text pool by day index
+        # rather than picking uniformly at random each time, so every text is
+        # shown once before any of them repeat — a random .choice() each day
+        # could otherwise replay the same text within just a handful of picks.
+        texts = LINGOGUESS_TEXTS_BY_LANG[lang["name"]]
+        text = texts[day_index % len(texts)]
         distractor_pool = [n for n in all_names if n != lang["name"]]
         distractors = rng.sample(distractor_pool, k=min(3, len(distractor_pool)))
         options = distractors + [lang["name"]]
@@ -289,6 +315,10 @@ def _reload_lingoguess_data() -> None:
     by_lang: Dict[str, List[str]] = {}
     for item in payload["texts"]:
         by_lang.setdefault(item["language"], []).append(item["text"])
+    # Deterministic per-language shuffle so the daily rotation in
+    # _lingoguess_daily_rounds doesn't just replay the source-file order.
+    for lang, texts in by_lang.items():
+        random.Random(f"lingoguess-order-{lang}").shuffle(texts)
     LINGOGUESS_TEXTS_BY_LANG = by_lang
 
 

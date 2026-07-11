@@ -46,7 +46,7 @@ None of these three files are tracked in git (see `.gitignore`) — they're seed
 
 **LingoGrid puzzle generation** — `_get_daily_puzzle(date)`:
 - Seeds `random.Random` from MD5 hash of the ISO date string
-- Shuffles 30 categories, picks 3 rows + 3 cols avoiding `_EXCL_GROUPS` conflicts
+- Shuffles 39 categories, picks 3 rows + 3 cols avoiding `_EXCL_GROUPS` conflicts
 - Validates all 9 cells have at least one valid language answer
 - Falls back to a hardcoded safe puzzle after 500 failed attempts
 
@@ -54,7 +54,7 @@ None of these three files are tracked in git (see `.gitignore`) — they're seed
 
 **LingoGuess daily rounds** — `_lingoguess_daily_rounds(date)`:
 - Seeds `random.Random` from MD5 hash of `"{date}-lingoguess"` (separate seed space from LingoGrid)
-- Picks `LINGOGUESS_ROUNDS` (5) languages that have sample texts, one random text each
+- Picks `LINGOGUESS_ROUNDS` (5) languages that have sample texts. The text for each language is *not* picked with `random.choice` — texts are shuffled once per language at load time (`_reload_lingoguess_data`, seeded from the language name) and then indexed by `days-since-2026-03-25 % len(texts)`, so a language's full text pool cycles through exactly once before any text repeats (a repeat can only happen when two picks are an exact multiple of that language's pool size apart)
 - Distractor options (3 per round) are sampled from the full `LINGOGRID_LANGUAGES` name pool, not just languages with texts
 - Correct language is kept server-side only (`round["language"]`) — `/api/lingoguess/puzzle` strips it, returning just `text` + shuffled `options`
 - Scoring reuses `_cell_score(correct_language, LINGOGRID_LANGUAGES)` (rarity rank across all 90 languages); Hard Mode multiplies the result by 1.5
