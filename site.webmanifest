@@ -1,6 +1,6 @@
 {
-  "name": "GeoLingo",
-  "short_name": "GeoLingo",
+  "name": "GekkoLingo",
+  "short_name": "GekkoLingo",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -15,7 +15,7 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "theme_color": "#5c7d00",
+  "background_color": "#5c7d00",
   "display": "standalone"
 }

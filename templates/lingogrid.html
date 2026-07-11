@@ -344,7 +344,6 @@
     }
     .badge-today    { background: #dcfce7; color: var(--green); }
     .badge-solved   { background: #f0fdf4; color: var(--green); border: 1px solid #86efac; }
-    .badge-upcoming { background: #f3f4f6; color: var(--muted); }
     .badge-current  { background: #111827; color: #fff; }
     .archive-score  { font-size: 12px; color: var(--muted); font-weight: 600; }
 
@@ -486,7 +485,7 @@
     <div class="archive-hd">
       <div class="archive-hd-left">
         <div class="archive-title">Puzzle Archive</div>
-        <div class="archive-subtitle">−25 · · · today · · · +25</div>
+        <div class="archive-subtitle">−49 · · · today</div>
       </div>
       <button class="modal-x" id="archiveX" type="button">✕</button>
     </div>
@@ -592,8 +591,14 @@ let activeCell  = null;
 let acIndex = -1, acItems = [];
 
 // ── Utilities ────────────────────────────────────────────────────────────────
+function dateToISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return dateToISO(new Date());
 }
 function stateKey(d) { return `lingogrid_state_${d}`; }
 function emptyState() {
@@ -619,10 +624,10 @@ function isToday() { return currentDate === todayISO(); }
 function archiveDates() {
   const today = new Date(todayISO() + 'T00:00:00');
   const dates = [];
-  for (let i = -24; i <= 25; i++) {
+  for (let i = -49; i <= 0; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
-    dates.push(d.toISOString().slice(0, 10));
+    dates.push(dateToISO(d));
   }
   return dates;
 }
@@ -754,8 +759,6 @@ function openArchiveModal() {
   dates.forEach(d => {
     const saved  = loadSavedState(d);
     const isTod  = d === today;
-    const isPast = d < today;
-    const isFuture = d > today;
     const num    = puzzleNumber(d);
 
     // Compute result stats from saved state
@@ -827,11 +830,6 @@ function openArchiveModal() {
     } else if (isTod) {
       const b = document.createElement('span');
       b.className = 'archive-badge badge-today'; b.textContent = 'Today';
-      status.appendChild(b);
-
-    } else if (isFuture) {
-      const b = document.createElement('span');
-      b.className = 'archive-badge badge-upcoming'; b.textContent = 'Upcoming';
       status.appendChild(b);
     }
     // Past, not played: no badge (clean)
@@ -1117,7 +1115,7 @@ document.getElementById('endShare').addEventListener('click', () => {
     lines.push(row.map(c => c.status === 'correct' ? '🟩' : '⬜').join(''));
   });
   lines.push(`Score: ${gameState.total_score}/900`);
-  lines.push('langenjoyer.world/lingogrid');
+  lines.push('gekkolingo.online/lingogrid');
   navigator.clipboard.writeText(lines.join('\n')).then(() => {
     document.getElementById('endShare').textContent = 'Copied!';
     setTimeout(() => document.getElementById('endShare').textContent = 'Copy result', 2000);

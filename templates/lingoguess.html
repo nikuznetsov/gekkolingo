@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>LingoGuess — Guess the Language</title>
+  <meta name="description" content="A daily language-guessing challenge. Read a short text and guess which language it's written in — or switch to Hard Mode and type the answer yourself."/>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --bg: #f9fafb;
+      --white: #fff;
+      --green: #16a34a;
+      --green-bg: #dcfce7;
+      --green-border: #86efac;
+      --red: #b91c1c;
+      --red-bg: #fee2e2;
+      --red-border: #fca5a5;
+      --accent: #ea580c;
+      --shadow: 0 4px 20px rgba(0,0,0,0.08);
+      --radius: 14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .page { min-height: 100%; display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    .header {
+      height: 56px; padding: 0 20px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid var(--border); background: var(--white);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      text-decoration: none; padding: 5px 9px; border-radius: 8px;
+      border: 1px solid var(--border); flex-shrink: 0;
+      transition: background .12s, color .12s; white-space: nowrap;
+    }
+    .back-link:hover { background: #f3f4f6; color: var(--text); }
+    .header-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+    .header-brand { display: inline-flex; align-items: center; gap: 10px; }
+    .header-brand-icon { width: 32px; height: 32px; flex-shrink: 0; }
+    .header-brand-text { display: flex; flex-direction: column; gap: 1px; }
+    .header-name {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 700; font-size: 20px; letter-spacing: -.5px; line-height: 1.05; white-space: nowrap;
+    }
+    .header-subtitle {
+      font-size: 12px; color: var(--muted); line-height: 1.1; white-space: nowrap;
+    }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .header-date { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+    .header-btn {
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      padding: 5px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--white);
+      color: var(--text); cursor: pointer; white-space: nowrap;
+      transition: background .12s;
+    }
+    .header-btn:hover { background: #f3f4f6; }
+    .header-score {
+      font-size: 13px; font-weight: 700;
+      padding: 5px 10px; border-radius: 8px;
+      background: var(--text); color: #fff; white-space: nowrap;
+      cursor: default; transition: opacity .12s;
+    }
+    .header-score.clickable { cursor: pointer; }
+    .header-score.clickable:hover { opacity: .82; }
+    .header-past-badge {
+      font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+      background: #fef9c3; color: #713f12; border: 1px solid #fde047;
+      white-space: nowrap;
+    }
+
+    /* ── Main ── */
+    .main {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; padding: 28px 16px 40px; gap: 18px;
+    }
+
+    /* ── Round bar ── */
+    .round-bar {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+    }
+    .round-dots { display: flex; gap: 5px; }
+    .round-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 2px solid #d1d5db; background: transparent;
+      transition: background .2s, border-color .2s;
+    }
+    .round-dot.correct { background: var(--green); border-color: var(--green); }
+    .round-dot.wrong   { background: var(--red-border); border-color: var(--red); }
+
+    /* ── Hard mode toggle ── */
+    .toggle-row {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--muted); font-weight: 600;
+    }
+    .toggle-switch { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: #d1d5db; border-radius: 999px; transition: background .15s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; height: 16px; width: 16px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: transform .15s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
+    .toggle-switch input:disabled + .toggle-slider { opacity: .45; cursor: not-allowed; }
+    .toggle-hint { font-size: 11px; color: #9ca3af; }
+
+    /* ── Text card ── */
+    .text-card {
+      background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 32px 28px; width: 100%; max-width: 560px;
+      text-align: center;
+    }
+    .text-quote {
+      font-size: 21px; line-height: 1.55; font-weight: 600; color: var(--text);
+    }
+
+    /* ── Options (normal mode) ── */
+    .options-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+      width: 100%; max-width: 560px;
+    }
+    .option-btn {
+      padding: 15px 12px; border-radius: 12px; border: 2px solid var(--border);
+      background: var(--white); font-family: inherit; font-size: 15px; font-weight: 700;
+      cursor: pointer; color: var(--text); transition: border-color .12s, background .12s, transform .1s;
+    }
+    .option-btn:hover:not(:disabled) { border-color: #9ca3af; background: #f9fafb; transform: scale(1.01); }
+    .option-btn:disabled { cursor: default; }
+    .option-btn.correct { border-color: var(--green-border); background: var(--green-bg); color: var(--green); }
+    .option-btn.wrong    { border-color: var(--red-border); background: var(--red-bg); color: var(--red); }
+
+    /* ── Hard mode input ── */
+    .hard-area { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 10px; }
+    .search-wrap { position: relative; }
+    .search-input {
+      width: 100%; font-size: 15px; padding: 12px 14px;
+      border: 1.5px solid #d1d5db; border-radius: 10px;
+      outline: none; font-family: inherit; color: var(--text);
+    }
+    .search-input:focus { border-color: #9ca3af; box-shadow: 0 0 0 3px rgba(156,163,175,.25); }
+    .search-input::placeholder { color: #9ca3af; }
+    .autocomplete {
+      position: absolute; left: 0; right: 0; top: calc(100% + 6px);
+      background: var(--white); border: 1px solid rgba(0,0,0,.10);
+      border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.12);
+      max-height: 220px; overflow-y: auto; z-index: 10; display: none;
+    }
+    .autocomplete.open { display: block; }
+    .ac-item { padding: 9px 12px; font-size: 13px; cursor: pointer; }
+    .ac-item:hover, .ac-item.active { background: #f3f4f6; }
+    .submit-btn {
+      width: 100%; padding: 12px; border-radius: 10px;
+      border: none; background: var(--text); color: #fff;
+      font-family: inherit; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .submit-btn:not(:disabled):hover { opacity: .88; }
+
+    /* ── Feedback ── */
+    .feedback-card {
+      width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 14px; align-items: center;
+    }
+    .feedback-banner {
+      width: 100%; padding: 14px 16px; border-radius: 12px;
+      font-size: 14px; font-weight: 700; text-align: center;
+    }
+    .feedback-banner.correct { background: var(--green-bg); color: var(--green); }
+    .feedback-banner.wrong   { background: var(--red-bg); color: var(--red); }
+    .feedback-sub { font-size: 12px; font-weight: 500; opacity: .85; margin-top: 4px; }
+    .next-btn {
+      padding: 11px 28px; border-radius: 10px; border: none;
+      background: var(--text); color: #fff; font-family: inherit;
+      font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity .15s;
+    }
+    .next-btn:hover { opacity: .88; }
+
+    /* ── Completed recap ── */
+    .recap-card {
+      width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: 16px;
+      background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 32px 28px; text-align: center;
+    }
+    .recap-title { font-family: "Space Grotesk", Inter, sans-serif; font-weight: 700; font-size: 18px; }
+    .recap-score { font-family: "Space Grotesk", Inter, sans-serif; font-weight: 800; font-size: 40px; color: var(--accent); }
+    .recap-grid { display: flex; gap: 6px; }
+    .recap-cell {
+      width: 32px; height: 32px; border-radius: 8px; border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+    }
+    .recap-cell.c { border-color: var(--green-border); background: var(--green-bg); }
+    .recap-cell.w { border-color: var(--red-border); background: var(--red-bg); }
+
+    /* ── Overlays ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(17,24,39,.45);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .overlay.hidden { display: none; }
+
+    /* ── Archive modal ── */
+    .archive-modal {
+      background: var(--white); border-radius: 18px;
+      border: 1px solid rgba(0,0,0,.09);
+      box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      width: min(520px, 100%);
+      display: flex; flex-direction: column;
+      max-height: min(86vh, 640px); overflow: hidden;
+    }
+    .archive-hd {
+      padding: 18px 20px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .archive-hd-left { display: flex; flex-direction: column; gap: 2px; }
+    .archive-title {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 700; font-size: 16px; letter-spacing: -.3px;
+    }
+    .archive-subtitle { font-size: 12px; color: var(--muted); }
+    .archive-body { overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+
+    .archive-entry {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--white);
+      cursor: pointer; transition: background .12s, border-color .12s;
+      text-decoration: none; color: inherit;
+    }
+    .archive-entry:hover { background: #f9fafb; border-color: #d1d5db; }
+    .archive-entry.is-today { border-color: #6ee7b7; background: #f0fdf4; }
+    .archive-entry.is-today:hover { background: #dcfce7; }
+    .archive-entry.is-active { border-color: #111827; background: #f9fafb; }
+
+    .archive-entry-date {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 700; font-size: 14px; min-width: 80px; flex-shrink: 0;
+    }
+    .archive-entry-num { font-size: 12px; color: var(--muted); flex-shrink: 0; min-width: 54px; }
+    .archive-entry-status { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .archive-badge {
+      font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+    }
+    .badge-today    { background: #dcfce7; color: var(--green); }
+    .badge-solved   { background: #f0fdf4; color: var(--green); border: 1px solid #86efac; }
+    .badge-current  { background: #111827; color: #fff; }
+    .archive-stat  { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+    .archive-stat.hi { color: var(--green); }
+
+    .mini-grid { display: flex; gap: 2px; flex-shrink: 0; }
+    .mg-cell { width: 9px; height: 9px; border-radius: 2px; background: #e5e7eb; }
+    .mg-cell.solved { background: #86efac; }
+    .mg-cell.wrong  { background: #fca5a5; }
+
+    .modal-x {
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(0,0,0,.12);
+      background: var(--white); cursor: pointer; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .modal-x:hover { background: #f3f4f6; }
+
+    /* ── End modal ── */
+    .end-modal {
+      background: var(--white); border-radius: 18px;
+      border: 1px solid rgba(0,0,0,.09);
+      box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      width: min(440px, 100%); padding: 28px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      text-align: center;
+    }
+    .end-title {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 800; font-size: 24px; letter-spacing: -.5px;
+    }
+    .end-score-big {
+      font-family: "Space Grotesk", Inter, sans-serif;
+      font-weight: 800; font-size: 52px; letter-spacing: -2px; color: var(--accent); line-height: 1;
+    }
+    .end-max { font-size: 14px; color: var(--muted); }
+    .end-grid { display: flex; gap: 6px; }
+    .end-cell {
+      width: 40px; height: 40px; border-radius: 8px;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .end-cell.c { border-color: var(--green-border); background: var(--green-bg); }
+    .end-cell.w { border-color: var(--red-border); background: var(--red-bg); }
+    .end-actions { display: flex; gap: 10px; width: 100%; }
+    .end-btn {
+      flex: 1; padding: 11px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--white);
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      cursor: pointer; color: var(--text); transition: background .12s;
+    }
+    .end-btn:hover { background: #f3f4f6; }
+    .end-btn.primary { background: var(--text); color: #fff; border-color: var(--text); }
+    .end-btn.primary:hover { opacity: .88; }
+    .end-close { font-size: 13px; color: var(--muted); cursor: pointer; text-decoration: underline; }
+
+    /* ── Loading / Error ── */
+    .loading {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--muted);
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 540px) {
+      .header-date { display: none; }
+      .header-subtitle { display: none; }
+      .text-card { padding: 24px 18px; }
+      .text-quote { font-size: 18px; }
+      .archive-entry-num { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <a class="back-link" href="/">← Back</a>
+    <div class="header-sep"></div>
+    <div class="header-brand">
+      <svg class="header-brand-icon" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 14 H64 a4 4 0 0 1 4 4 V46 a4 4 0 0 1 -4 4 H30 L18 62 V50 H8 a4 4 0 0 1 -4 -4 V18 a4 4 0 0 1 4 -4 Z"
+              stroke="#ea580c" stroke-width="2.5" stroke-linejoin="round"/>
+        <line x1="14" y1="26" x2="58" y2="26" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="14" y1="34" x2="50" y2="34" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="14" y1="42" x2="42" y2="42" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <div class="header-brand-text">
+        <div class="header-name">LingoGuess</div>
+        <div class="header-subtitle">Daily language guessing challenge</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="pastBadge" class="header-past-badge" style="display:none">Past puzzle</span>
+      <span class="header-date" id="headerDate"></span>
+      <button class="header-btn" id="btnArchive" type="button">📅 Archive</button>
+      <span class="header-score" id="headerScore">0 pts</span>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+    <div class="loading" id="loadingMsg">Loading puzzle…</div>
+  </main>
+
+</div>
+
+<!-- Archive modal -->
+<div class="overlay hidden" id="archiveOverlay">
+  <div class="archive-modal">
+    <div class="archive-hd">
+      <div class="archive-hd-left">
+        <div class="archive-title">Puzzle Archive</div>
+        <div class="archive-subtitle">−49 · · · today</div>
+      </div>
+      <button class="modal-x" id="archiveX" type="button">✕</button>
+    </div>
+    <div class="archive-body" id="archiveBody"></div>
+  </div>
+</div>
+
+<!-- End modal -->
+<div class="overlay hidden" id="endOverlay">
+  <div class="end-modal">
+    <div class="end-title" id="endTitle">Challenge complete!</div>
+    <div class="end-score-big" id="endScore">0</div>
+    <div class="end-max" id="endMax">points earned today</div>
+    <div class="end-grid" id="endGrid"></div>
+    <div class="end-actions">
+      <button class="end-btn primary" id="endShare" type="button">Copy result</button>
+      <button class="end-btn" id="endArchive" type="button">📅 Archive</button>
+    </div>
+    <span class="end-close" id="endClose">Close</span>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const MAX_ROUNDS = 5;
+let puzzle    = null; // {date, rounds:[{text, options}], language_names}
+let gameState = null;
+let currentDate = todayISO();
+let acIndex = -1, acItems = [];
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+function dateToISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function todayISO() {
+  return dateToISO(new Date());
+}
+function stateKey(d) { return `lingoguess_state_${d}`; }
+function emptyState() {
+  return {
+    hard_mode: false,
+    current: 0,
+    rounds: Array.from({ length: MAX_ROUNDS }, () => ({
+      status: 'pending', chosen: null, correct: null, correct_language: null, score: 0,
+    })),
+    total_score: 0,
+  };
+}
+function saveState() { localStorage.setItem(stateKey(currentDate), JSON.stringify(gameState)); }
+function loadSavedState(d) {
+  const raw = localStorage.getItem(stateKey(d));
+  return raw ? JSON.parse(raw) : null;
+}
+function isGameOver() {
+  if (!gameState) return false;
+  return gameState.rounds.every(r => r.status === 'answered');
+}
+function isToday() { return currentDate === todayISO(); }
+function archiveDates() {
+  const today = new Date(todayISO() + 'T00:00:00');
+  const dates = [];
+  for (let i = -49; i <= 0; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    dates.push(dateToISO(d));
+  }
+  return dates;
+}
+function formatDate(isoStr) {
+  const d = new Date(isoStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function formatDateShort(isoStr) {
+  const d = new Date(isoStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function puzzleNumber(isoStr) {
+  const epoch = new Date('2026-07-10T00:00:00');
+  const d = new Date(isoStr + 'T00:00:00');
+  return Math.round((d - epoch) / 86400000) + 1;
+}
+
+// ── API ──────────────────────────────────────────────────────────────────────
+async function fetchPuzzle(d) {
+  const res = await fetch(`/api/lingoguess/puzzle?date=${d}`);
+  if (!res.ok) throw new Error('Failed to load puzzle');
+  return res.json();
+}
+async function submitGuess(round, language, hardMode) {
+  const res = await fetch('/api/lingoguess/guess', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ round, language, hard_mode: hardMode, date: currentDate }),
+  });
+  if (!res.ok) throw new Error('Request failed');
+  return res.json();
+}
+
+// ── Load a date ───────────────────────────────────────────────────────────────
+async function loadDate(d) {
+  currentDate = d;
+  document.getElementById('main').innerHTML = '<div class="loading">Loading puzzle…</div>';
+
+  try {
+    puzzle = await fetchPuzzle(d);
+  } catch {
+    document.getElementById('main').innerHTML =
+      '<div class="loading">Failed to load puzzle. Please refresh.</div>';
+    return;
+  }
+
+  const saved = loadSavedState(d);
+  gameState = saved || emptyState();
+
+  document.getElementById('headerDate').textContent = formatDate(d);
+  document.getElementById('pastBadge').style.display = isToday() ? 'none' : '';
+  document.getElementById('headerScore').textContent = `${gameState.total_score} pts`;
+
+  const scoreEl = document.getElementById('headerScore');
+  if (isGameOver()) {
+    scoreEl.classList.add('clickable');
+    scoreEl.title = 'Click to see results';
+  } else {
+    scoreEl.classList.remove('clickable');
+    scoreEl.title = '';
+  }
+
+  renderMain();
+}
+
+// ── Autocomplete (hard mode) ───────────────────────────────────────────────────
+function normAc(s) { return (s || '').toLowerCase().trim(); }
+function acSuggest(query) {
+  const q = normAc(query);
+  if (!q) return [];
+  const matches = (puzzle.language_names || [])
+    .filter(l => normAc(l).includes(q))
+    .map(l => ({ l, score: normAc(l).startsWith(q) ? 0 : 1 }));
+  matches.sort((a, b) => a.score - b.score || a.l.localeCompare(b.l));
+  return matches.slice(0, 10).map(x => x.l);
+}
+function renderAc(items) {
+  const el = document.getElementById('autocomplete');
+  if (!el) return;
+  acItems = items; acIndex = items.length ? 0 : -1;
+  if (!items.length) { el.classList.remove('open'); el.innerHTML = ''; return; }
+  el.innerHTML = items.map((item, i) =>
+    `<div class="ac-item${i === acIndex ? ' active' : ''}" data-i="${i}">${item}</div>`
+  ).join('');
+  el.classList.add('open');
+  el.querySelectorAll('.ac-item').forEach(node => {
+    node.addEventListener('mousedown', e => { e.preventDefault(); selectLang(items[parseInt(node.dataset.i)]); });
+    node.addEventListener('mouseenter', () => { acIndex = parseInt(node.dataset.i); syncAcActive(); });
+  });
+}
+function syncAcActive() {
+  document.querySelectorAll('#autocomplete .ac-item').forEach((n, i) =>
+    n.classList.toggle('active', i === acIndex));
+}
+function closeAc() {
+  const el = document.getElementById('autocomplete');
+  if (el) el.classList.remove('open');
+  acItems = []; acIndex = -1;
+}
+function selectLang(lang) {
+  const inp = document.getElementById('searchInput');
+  if (!inp) return;
+  inp.value = lang;
+  closeAc();
+  document.getElementById('submitBtn').disabled = false;
+}
+
+// ── Answer handling ─────────────────────────────────────────────────────────────
+async function handleAnswer(lang) {
+  if (!puzzle || !gameState) return;
+  const idx = gameState.current;
+  if (idx >= MAX_ROUNDS || gameState.rounds[idx].status !== 'pending') return;
+  if (!lang) return;
+
+  let result;
+  try { result = await submitGuess(idx, lang, gameState.hard_mode); }
+  catch { return; }
+
+  gameState.rounds[idx] = {
+    status: 'answered',
+    chosen: lang,
+    correct: result.valid,
+    correct_language: result.correct_language,
+    score: result.score,
+  };
+  gameState.total_score += result.score;
+  saveState();
+
+  document.getElementById('headerScore').textContent = `${gameState.total_score} pts`;
+  renderMain();
+}
+
+// ── Render: question view ─────────────────────────────────────────────────────
+function renderQuestionView(idx) {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const round = puzzle.rounds[idx];
+  const started = gameState.rounds.some(r => r.status === 'answered') || idx > 0;
+
+  main.appendChild(buildRoundBar());
+  main.appendChild(buildToggleRow(started));
+
+  const card = document.createElement('div');
+  card.className = 'text-card';
+  card.innerHTML = `<div class="text-quote">“${round.text}”</div>`;
+  main.appendChild(card);
+
+  if (gameState.hard_mode) {
+    const area = document.createElement('div');
+    area.className = 'hard-area';
+    area.innerHTML = `
+      <div class="search-wrap">
+        <input class="search-input" id="searchInput" type="text" placeholder="Type a language…" autocomplete="off"/>
+        <div class="autocomplete" id="autocomplete"></div>
+      </div>
+      <button class="submit-btn" id="submitBtn" type="button" disabled>Submit</button>
+    `;
+    main.appendChild(area);
+
+    const inp = document.getElementById('searchInput');
+    const btn = document.getElementById('submitBtn');
+    inp.addEventListener('input', e => {
+      renderAc(acSuggest(e.target.value));
+      btn.disabled = !e.target.value.trim();
+    });
+    inp.addEventListener('keydown', e => {
+      const open = document.getElementById('autocomplete').classList.contains('open');
+      if (e.key === 'ArrowDown') { e.preventDefault(); acIndex = Math.min(acIndex + 1, acItems.length - 1); syncAcActive(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); acIndex = Math.max(acIndex - 1, 0); syncAcActive(); }
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (open && acIndex >= 0 && acItems[acIndex]) selectLang(acItems[acIndex]);
+        else if (inp.value.trim()) handleAnswer(inp.value.trim());
+      }
+    });
+    btn.addEventListener('click', () => { if (inp.value.trim()) handleAnswer(inp.value.trim()); });
+    document.addEventListener('click', outsideAcCloser);
+    setTimeout(() => inp.focus(), 60);
+  } else {
+    const grid = document.createElement('div');
+    grid.className = 'options-grid';
+    round.options.forEach(opt => {
+      const b = document.createElement('button');
+      b.className = 'option-btn'; b.type = 'button'; b.textContent = opt;
+      b.addEventListener('click', () => handleAnswer(opt));
+      grid.appendChild(b);
+    });
+    main.appendChild(grid);
+  }
+}
+function outsideAcCloser(e) {
+  const ac = document.getElementById('autocomplete');
+  const inp = document.getElementById('searchInput');
+  if (!ac) { document.removeEventListener('click', outsideAcCloser); return; }
+  if (!ac.contains(e.target) && e.target !== inp) closeAc();
+}
+
+// ── Render: feedback view ─────────────────────────────────────────────────────
+function renderFeedbackView(idx) {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const round = puzzle.rounds[idx];
+  const r = gameState.rounds[idx];
+
+  main.appendChild(buildRoundBar());
+
+  const card = document.createElement('div');
+  card.className = 'text-card';
+  card.innerHTML = `<div class="text-quote">“${round.text}”</div>`;
+  main.appendChild(card);
+
+  if (!gameState.hard_mode) {
+    const grid = document.createElement('div');
+    grid.className = 'options-grid';
+    round.options.forEach(opt => {
+      const b = document.createElement('button');
+      b.className = 'option-btn'; b.type = 'button'; b.textContent = opt; b.disabled = true;
+      if (opt === r.correct_language) b.classList.add('correct');
+      else if (opt === r.chosen) b.classList.add('wrong');
+      grid.appendChild(b);
+    });
+    main.appendChild(grid);
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'feedback-card';
+  const banner = document.createElement('div');
+  banner.className = 'feedback-banner ' + (r.correct ? 'correct' : 'wrong');
+  banner.innerHTML = r.correct
+    ? `✓ Correct! It was ${r.correct_language}. +${r.score} pts`
+    : `✗ You guessed "${r.chosen}" — it was actually ${r.correct_language}.`;
+  wrap.appendChild(banner);
+
+  const btn = document.createElement('button');
+  btn.className = 'next-btn'; btn.type = 'button';
+  btn.textContent = idx === MAX_ROUNDS - 1 ? 'See results' : 'Next round →';
+  btn.addEventListener('click', goNext);
+  wrap.appendChild(btn);
+
+  main.appendChild(wrap);
+}
+
+function goNext() {
+  gameState.current++;
+  saveState();
+  if (isGameOver()) showEndModal();
+  else renderMain();
+}
+
+// ── Render: completed recap ────────────────────────────────────────────────────
+function renderRecap() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'recap-card';
+  card.innerHTML = `
+    <div class="recap-title">Today's challenge is complete!</div>
+    <div class="recap-score">${gameState.total_score} pts</div>
+    <div class="recap-grid">
+      ${gameState.rounds.map(r => `<div class="recap-cell ${r.correct ? 'c' : 'w'}">${r.correct ? '✓' : '✕'}</div>`).join('')}
+    </div>
+    <button class="next-btn" id="recapResults" type="button">View results</button>
+  `;
+  main.appendChild(card);
+  document.getElementById('recapResults').addEventListener('click', showEndModal);
+}
+
+// ── Round bar / toggle ─────────────────────────────────────────────────────────
+function buildRoundBar() {
+  const bar = document.createElement('div');
+  bar.className = 'round-bar';
+  const answered = gameState.rounds.filter(r => r.status === 'answered').length;
+  bar.innerHTML = `
+    <span>Round ${Math.min(gameState.current + 1, MAX_ROUNDS)} of ${MAX_ROUNDS}</span>
+    <div class="round-dots">
+      ${gameState.rounds.map((r, i) => {
+        let cls = '';
+        if (r.status === 'answered') cls = r.correct ? 'correct' : 'wrong';
+        return `<span class="round-dot ${cls}"></span>`;
+      }).join('')}
+    </div>
+  `;
+  return bar;
+}
+function buildToggleRow(started) {
+  const row = document.createElement('div');
+  row.className = 'toggle-row';
+  row.innerHTML = `
+    <label class="toggle-switch">
+      <input type="checkbox" id="hardModeToggle" ${gameState.hard_mode ? 'checked' : ''} ${started ? 'disabled' : ''}/>
+      <span class="toggle-slider"></span>
+    </label>
+    <span>Hard Mode — type the answer, no options shown</span>
+    ${started ? '<span class="toggle-hint">(locked once you start)</span>' : ''}
+  `;
+  const cb = row.querySelector('#hardModeToggle');
+  cb.addEventListener('change', () => {
+    gameState.hard_mode = cb.checked;
+    saveState();
+    renderMain();
+  });
+  return row;
+}
+
+// ── Main render dispatcher ────────────────────────────────────────────────────
+function renderMain() {
+  closeAc();
+  const idx = gameState.current;
+  // A round that was just answered (including the last one) always gets its
+  // feedback shown first — only a *completed* game reopened later (current
+  // has already advanced past the last round) goes straight to the recap.
+  if (idx < MAX_ROUNDS && gameState.rounds[idx].status === 'answered') {
+    renderFeedbackView(idx);
+    return;
+  }
+  if (isGameOver()) { renderRecap(); return; }
+  renderQuestionView(idx);
+}
+
+// ── Archive modal ─────────────────────────────────────────────────────────────
+function makeMiniGrid(rounds) {
+  const wrap = document.createElement('div');
+  wrap.className = 'mini-grid';
+  const flat = rounds && rounds.length === MAX_ROUNDS ? rounds : Array(MAX_ROUNDS).fill({ status: 'pending' });
+  flat.forEach(r => {
+    const sq = document.createElement('div');
+    sq.className = 'mg-cell' + (r.status === 'answered' ? (r.correct ? ' solved' : ' wrong') : '');
+    wrap.appendChild(sq);
+  });
+  return wrap;
+}
+function openArchiveModal() {
+  const body = document.getElementById('archiveBody');
+  const dates = archiveDates();
+  const today = todayISO();
+  body.innerHTML = '';
+
+  dates.forEach(d => {
+    const saved  = loadSavedState(d);
+    const isTod  = d === today;
+    const num    = puzzleNumber(d);
+
+    const answeredCount = saved ? saved.rounds.filter(r => r.status === 'answered').length : 0;
+    const hasProgress = saved && answeredCount > 0;
+    const isOver = saved && answeredCount === MAX_ROUNDS;
+    const correctCount = saved ? saved.rounds.filter(r => r.status === 'answered' && r.correct).length : 0;
+
+    const entry = document.createElement('div');
+    entry.className = 'archive-entry' +
+      (isTod ? ' is-today' : '') +
+      (d === currentDate ? ' is-active' : '');
+
+    const dateLbl = document.createElement('div');
+    dateLbl.className = 'archive-entry-date';
+    dateLbl.textContent = formatDateShort(d);
+
+    const numLbl = document.createElement('div');
+    numLbl.className = 'archive-entry-num';
+    numLbl.textContent = `#${num}`;
+
+    const status = document.createElement('div');
+    status.className = 'archive-entry-status';
+
+    if (d === currentDate) {
+      if (hasProgress) {
+        status.appendChild(makeMiniGrid(saved.rounds));
+        const sc = document.createElement('span');
+        sc.className = 'archive-stat'; sc.textContent = `${saved.total_score} pts`;
+        status.appendChild(sc);
+      }
+      const b = document.createElement('span');
+      b.className = 'archive-badge badge-current'; b.textContent = 'Current';
+      status.appendChild(b);
+    } else if (hasProgress) {
+      status.appendChild(makeMiniGrid(saved.rounds));
+      const sc = document.createElement('span');
+      sc.className = 'archive-stat' + (isOver && correctCount === MAX_ROUNDS ? ' hi' : '');
+      sc.textContent = `${saved.total_score} pts`;
+      status.appendChild(sc);
+
+      if (isOver) {
+        const b = document.createElement('span');
+        b.className = 'archive-badge badge-solved'; b.textContent = `${correctCount}/${MAX_ROUNDS}`;
+        status.appendChild(b);
+      } else {
+        const b = document.createElement('span');
+        b.className = 'archive-badge'; b.style.cssText = 'background:#fef9c3;color:#713f12';
+        b.textContent = `${answeredCount}/${MAX_ROUNDS} ▶`;
+        status.appendChild(b);
+      }
+    } else if (isTod) {
+      const b = document.createElement('span');
+      b.className = 'archive-badge badge-today'; b.textContent = 'Today';
+      status.appendChild(b);
+    }
+
+    entry.appendChild(dateLbl);
+    entry.appendChild(numLbl);
+    entry.appendChild(status);
+    entry.addEventListener('click', () => { closeArchiveModal(); loadDate(d); });
+    body.appendChild(entry);
+  });
+
+  document.getElementById('archiveOverlay').classList.remove('hidden');
+  requestAnimationFrame(() => {
+    const todayEl = body.querySelector('.is-today');
+    if (todayEl) todayEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+}
+function closeArchiveModal() {
+  document.getElementById('archiveOverlay').classList.add('hidden');
+}
+document.getElementById('btnArchive').addEventListener('click', openArchiveModal);
+document.getElementById('archiveX').addEventListener('click', closeArchiveModal);
+document.getElementById('endArchive').addEventListener('click', () => {
+  closeEndModal();
+  openArchiveModal();
+});
+document.getElementById('archiveOverlay').addEventListener('mousedown', e => {
+  if (e.target === document.getElementById('archiveOverlay')) closeArchiveModal();
+});
+
+// ── End modal ─────────────────────────────────────────────────────────────────
+function showEndModal() {
+  const allCorrect = gameState.rounds.every(r => r.correct);
+  document.getElementById('endTitle').textContent = allCorrect ? '🎉 Perfect round!' : 'Challenge complete!';
+  document.getElementById('endScore').textContent = gameState.total_score;
+  document.getElementById('endGrid').innerHTML = gameState.rounds.map(r =>
+    `<div class="end-cell ${r.correct ? 'c' : 'w'}">${r.correct ? '✓' : '✕'}</div>`
+  ).join('');
+  document.getElementById('endOverlay').classList.remove('hidden');
+  const scoreEl = document.getElementById('headerScore');
+  scoreEl.classList.add('clickable');
+  scoreEl.title = 'Click to see results';
+}
+function closeEndModal() { document.getElementById('endOverlay').classList.add('hidden'); }
+
+document.getElementById('headerScore').addEventListener('click', () => {
+  if (document.getElementById('headerScore').classList.contains('clickable')) showEndModal();
+});
+document.getElementById('endClose').addEventListener('click', closeEndModal);
+document.getElementById('endOverlay').addEventListener('mousedown', e => {
+  if (e.target === document.getElementById('endOverlay')) closeEndModal();
+});
+document.getElementById('endShare').addEventListener('click', () => {
+  const num = puzzleNumber(currentDate);
+  const lines = [`LingoGuess #${num} — ${formatDate(currentDate)}`, ''];
+  lines.push(gameState.rounds.map(r => r.correct ? '🟩' : '🟥').join(''));
+  lines.push(`Score: ${gameState.total_score} pts${gameState.hard_mode ? ' (Hard Mode)' : ''}`);
+  lines.push('gekkolingo.online/lingoguess');
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    document.getElementById('endShare').textContent = 'Copied!';
+    setTimeout(() => document.getElementById('endShare').textContent = 'Copy result', 2000);
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (!document.getElementById('archiveOverlay').classList.contains('hidden')) closeArchiveModal();
+    else if (!document.getElementById('endOverlay').classList.contains('hidden')) closeEndModal();
+  }
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const dateParam = params.get('date');
+  const startDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : todayISO();
+  await loadDate(startDate);
+})();
+</script>
+</body>
+</html>

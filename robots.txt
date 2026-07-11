@@ -4,4 +4,4 @@ Allow: /favicon.svg
 Allow: /apple-touch-icon.png
 Allow: /site.webmanifest
 Allow: /
-Sitemap: https://geolingo.world/sitemap.xml
+Sitemap: https://gekkolingo.online/sitemap.xml
