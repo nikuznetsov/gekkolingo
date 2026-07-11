@@ -1,4 +1,4 @@
-# LangEnjoyer
+# GekkoLingo
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-teal)
@@ -6,9 +6,9 @@
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 ![Railway](https://img.shields.io/badge/Deployed%20on-Railway-purple)
 
-**LangEnjoyer** is a platform of language games and tools for people who love exploring how languages work across the world.
+**GekkoLingo** is a platform of language games and tools for people who love exploring how languages work across the world.
 
-🔗 **Live:** https://geolingo.world
+🔗 **Live:** https://gekkolingo.online
 
 ---
 
@@ -61,7 +61,7 @@ templates/
 static/
   world_50m.geojson           # Map geometry
   location.png                # GeoLingo icon
-  lang-enjoyer.svg            # Brand icon
+  gecko-logo.png              # Brand icon
   og-image.png                # Open Graph image
 ```
 
@@ -69,7 +69,7 @@ static/
 
 ## Contacts
 
-- 💼 [LinkedIn](https://www.linkedin.com/in/nikita-kuznetsov-ab196a245/)
+- 💼 [LinkedIn](https://www.linkedin.com/in/nikuznetsoff)
 - 📧 [Email](mailto:nikuznetsoff@gmail.com)
 - 🐙 [GitHub](https://github.com/nikuznetsov)
 
