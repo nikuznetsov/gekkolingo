@@ -1110,7 +1110,7 @@
 
           const langsHtml = (langs.length ? langs : ["n/a"]).map(l => {
             const spk = speakersByLang[l] ?? 0;
-            return `<div><strong>${escHtml(l)}</strong>: ${fmtInt(spk)}</div>`;
+            return `<div style="display:flex; justify-content:space-between; gap:10px; padding:3px 0;"><span>${escHtml(l)}</span><span style="color:#666;">${fmtInt(spk)}</span></div>`;
           }).join("");
 
           const cardHtml = `
@@ -1119,9 +1119,9 @@
               <div style="flex:1; min-width:0;">
                 <div style="font-weight:800; font-size:15px; margin-bottom:6px;">${name}</div>
                 <div style="font-size:13px; line-height:1.35;">
-                  <div style="margin-bottom:6px;"><strong>Official languages:</strong></div>
-                  <div>${langsHtml}</div>
-                  <div style="margin-top:8px;"><strong>Population:</strong> ${fmtInt(pop)}</div>
+                  <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:#888; margin-bottom:2px;">Official languages</div>
+                  <div style="border:1px solid #e5e5e5; border-radius:6px; padding:2px 8px; background:#fafafa;">${langsHtml}</div>
+                  <div style="margin-top:8px; padding-top:8px; border-top:1px solid #e5e5e5;"><strong>Population:</strong> ${fmtInt(pop)}</div>
                 </div>
               </div>
             </div>
